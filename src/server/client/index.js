@@ -1,5 +1,5 @@
 import websocket from 'websocket';
-import superagent from 'superagent';
+import superagent from 'superagent-bluebird-promise';
 import getSign from './iqiyiSign';
 import {
   sdkVersion,
@@ -11,6 +11,7 @@ import {
   referer,
   host,
   pingPongTime,
+  origin,
 } from '../constant';
 
 const WebSocketClient = websocket.client;
@@ -54,6 +55,7 @@ export default class Client {
     // wsHost 有别的服务器 尝试连接失败后 换 2
     const authArray = Object.keys(auth).map((key) => `${key}=${auth[key]}`);
     this.client.connect(`${wsHost}?${authArray.join('&')}`);
+    console.log(auth)
   }
 
   connectionInit() {
@@ -71,11 +73,11 @@ export default class Client {
     this.connection.on('message', (message) => {
       if (message.utf8Data && message.utf8Data !== 'PINGREP') {
         try {
-          const messageDate = JSON.parse(message.utf8Data);
-          if (messageDate[0]) {
-            const { msgType, op_userInfo = {} } = messageDate[0].ct || {};
+          const messageData = JSON.parse(message.utf8Data);
+          if (messageData[0]) {
+            const { msgType, op_userInfo = {} } = messageData[0].ct || {};
             switch (msgType) {
-            case msgTypes.enter: this.addMessageQ(op_userInfo.nick_name);break;
+              case msgTypes.enter: this.addMessageQ(op_userInfo.nick_name);break;
             }
           }
         } catch (e) {
@@ -89,12 +91,13 @@ export default class Client {
   }
 
   addMessageQ(nick_name) {
+    console.log(nick_name)
     if (nick_name) {
       this.messageQ[++this.pointer] = nick_name;
     }
   }
 
-  sendMessage(nick_name) {
+  async sendMessage(nick_name) {
     if (!nick_name) {
       return;
     }
@@ -123,7 +126,8 @@ export default class Client {
       // 'Hm_lpvt_0f5556da646371aeac76715b71f140dd=1545462826',
       // '__dfp=a0754d8ae271b24810b04c7befe0e6d9e1914939054c533fde56d621014f1a76f2@1545835276280@1544539276280',
     ];
-    superagent
+    console.log(ServerCookie)
+    const res = await superagent
       .post(sendMsgUrl)
       .set('User-Agent', userAgent)
       .set('Content-Type', contentType)
@@ -138,13 +142,15 @@ export default class Client {
         content: '666',
         // dpf: this.dpf, // 此参数可以不传
       })
-      .end((err, res) => {
-        if (res.body.code === 200) {
-          console.log('发送成功');
-        } else if (res.code === 201 && res.body.msg === '发言有点频繁哦，稍后再发吧~') {
-          this.addMessageQ(nick_name);
-        }
-      });
+    if (res.status === 200) {
+      if (res.body.code === 200) {
+        console.log('发送成功');
+      } else if (res.code === 201 && res.body.msg === '发言有点频繁哦，稍后再发吧~') {
+        this.addMessageQ(nick_name);
+      }
+    } else {
+      console.log('消息发送失败');
+    }
   }
 
   sendMessageQConsumer() {

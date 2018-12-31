@@ -7,7 +7,7 @@ import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 
 import routes from './routes';
-var app = express();
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -37,15 +37,15 @@ app.use(function(err, req, res) {
   res.render('error');
 });
 
-var port = normalizePort(process.env.PORT || '3000');
+const port = normalizePort(process.env.PORT || '3001');
 app.set('port', port);
-var server = http.createServer(app);
+const server = http.createServer(app);
 
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
 function normalizePort(val) {
-  var port = parseInt(val, 10);
+  const port = parseInt(val, 10);
 
   if (isNaN(port)) {
     // named pipe
@@ -69,7 +69,7 @@ function onError(error) {
     throw error;
   }
 
-  var bind = typeof port === 'string'
+  const bind = typeof port === 'string'
     ? 'Pipe ' + port
     : 'Port ' + port;
 
@@ -93,8 +93,8 @@ function onError(error) {
  */
 
 function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string'
+  const addr = server.address();
+  const bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('demo:server')('Listening on ' + bind);
