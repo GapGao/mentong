@@ -1,18 +1,21 @@
 <template>
-  <div class="login-container">
+  <div class="login-container" @keydown.enter="enter">
     <div class="mask"></div>
     <el-card shadow="hover" class="login-model">
       <div class="logo"></div>
       <el-input class="ipt" v-model="account" placeholder="请输入账号"></el-input>
       <el-input class="ipt" v-model="password" type="password" placeholder="请输入密码"></el-input>
-      <el-button type="info" class="submit" @click="submit">{{ mode === 'login' ? '登录' : '注册' }}</el-button>
-      <div class="to-register" @click="onChangeMode">{{ mode === 'login' ? '注册账号' : '登录' }}</div>
+      <el-input v-if="mode === 'register'" class="ipt" v-model="confirmPassword" type="password" placeholder="请确认密码"></el-input>
+      <el-input v-if="mode === 'register'" class="ipt" v-model="inviteCode" placeholder="请输入邀请码"></el-input>
+      <el-button v-if="mode === 'login'" type="info" class="submit" @click="submit" :disabled="loginDisable">登录</el-button>
+      <el-button v-if="mode === 'register'" type="info" class="submit" @click="register" :disabled="registerDisable">注册</el-button>
+      <div class="to-register"><span class="contact" @click="onShowWx">联系管理员</span><span @click="onChangeMode">{{ mode === 'login' ? '注册账号' : '登录' }}</span></div>
     </el-card>
   </div>
 </template>
 
 <script>
-import { login } from '../apis/user';
+import { login, register } from '../apis/user';
 
 export default {
   data () {
@@ -20,7 +23,19 @@ export default {
       mode: 'login',
       account: '',
       password: '',
+      confirmPassword: '',
+      inviteCode: '',
     };
+  },
+  computed: {
+    loginDisable () {
+      return !this.account || !this.password;
+    },
+    registerDisable () {
+      return !this.account || !this.password
+      || !this.confirmPassword || !this.inviteCode
+      || this.password !== this.confirmPassword;
+    },
   },
   methods: {
     onChangeMode () {
@@ -32,11 +47,46 @@ export default {
     },
     submit () {
       login(this.account, this.password)
-      .then((err, res) => {
-        console.log(err);
-        console.log(res);
+      .then(() => window.location.href = '/')
+      .catch((e) => {
+        this.$message(e.body ? e.body.message : '服务器错误');
+      });
+    },
+    register () {
+      register(this.account, this.password, this.confirmPassword, this.inviteCode)
+      .then(() => {
+        this.$message('注册成功');
+        this.mode = 'login';
       })
-    }
+      .catch((e) => {
+        this.$message(e.body ? e.body.message : '服务器错误');
+      });
+    },
+    enter () {
+      if (this.mode = 'login') {
+        this.submit();
+      } else {
+        this.register();
+      }
+    },
+    onShowWx () {
+      const h = this.$createElement;
+      this.$msgbox({
+        title: '管理员微信二维码',
+        message: h('div', null, [
+          h('img', {
+            attrs: {
+              src: '/images/wexin.jpg',
+            },
+            class: 'wexin',
+          }),
+        ]),
+        distinguishCancelAndClose: true,
+        lockScroll: true,
+        showConfirmButton: false,
+        center: true,
+      });
+    },
   },
 };
 </script>
@@ -90,7 +140,6 @@ export default {
     top: 50%;
     transform: translate(-50%, -50%);
     width: 340px;
-    height: 340px;
     z-index: 4;
   }
 
@@ -125,18 +174,23 @@ export default {
   }
 
   .to-register {
-    position: absolute;
-    right: 20px;
-    bottom: 15px;
+    margin-top: 10px;
     font-size: 13px;
     color: #787E91;
-    cursor: pointer;
+    text-align: right;
   }
 
-  .to-register:hover {
+  .to-register>span:hover {
+    cursor: pointer;
     color: #4FA1D6;
     text-decoration: underline;
   }
 
-</style>
+  .contact {
+    margin-right: 12px;
+  }
 
+  .wexin {
+    width: 100%;
+  }
+</style>

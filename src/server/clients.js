@@ -26,8 +26,19 @@ export function removeMentong(userId, mentongId) {
   }
 }
 
-export function createMentong(userId, mentongId, client) {
-  clearMentong(userId);
-  clients[userId] = clients[userId] || {};
-  clients[userId][mentongId] = new Client(client);
+export function createMentong(userId, mentongId, setting) {
+  return new Promise((resolve) => {
+    clearMentong(userId);
+    clients[userId] = clients[userId] || {};
+    clients[userId][mentongId] = new Client({ userId, mentongId, ...setting, callback: (result) => {
+      resolve(result);
+    } });
+  })
+}
+
+export function getMentongStatusHelper(userId, mentongId) {
+  if (clients[userId] && clients[userId][mentongId]) {
+    return clients[userId][mentongId].status;
+  }
+  return false;
 }

@@ -1,6 +1,8 @@
 import websocket from 'websocket';
 import superagent from 'superagent-bluebird-promise';
 import getSign from './iqiyiSign';
+import { removeMentong } from '../clients';
+import log from '../log';
 import {
   sdkVersion,
   wsHost,
@@ -16,28 +18,40 @@ import {
 
 const WebSocketClient = websocket.client;
 export default class Client {
-  constructor({ roomId, deviceId, authCookie, actionAuth, dpf }) {
+  constructor({ userId, mentongId, roomId, deviceId, authCookie, actionAuth, welcome, thanks, delayedSending, dpf, callback = () => {} }) {
+    this.userId = userId;
+    this.mentongId = mentongId;
     this.roomId = roomId;
     this.deviceId = deviceId;
     this.authCookie = authCookie;
     this.actionAuth = actionAuth;
+    this.welcome = welcome;
+    this.thanks = thanks;
+    this.delayedSending = delayedSending;
+    this.callback = callback;
     this.dpf = dpf;
 
     this.messageQ = {};
     this.pointer = 1;
     this.client = new WebSocketClient();
 
-    this.status = 0; // 0 close 1 open
+    this.status = false;
 
     this.client.on('connectFailed', (error) => {
-      this.status = 0;
-      console.log('Connect Error: ' + error.toString());
+      this.status = false;
+      this.callback(false);
+      log.error(error, { message: 'connectFailed', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
     });
    
     this.client.on('connect', (connection) => {
-      console.time('连接时间');
-      console.log('WebSocket Client Connected');
-      this.status = 1;
+      this.status = true;
+      this.callback(true);
+      log.info(`${this.roomId}已连接`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+
+      setTimeout(() => {
+        removeMentong(this.userId, this.mentongId);
+      }, 2 * 60 * 60 * 1000);
+
       this.connection = connection;
       this.connectionInit();
     });
@@ -55,19 +69,18 @@ export default class Client {
     // wsHost 有别的服务器 尝试连接失败后 换 2
     const authArray = Object.keys(auth).map((key) => `${key}=${auth[key]}`);
     this.client.connect(`${wsHost}?${authArray.join('&')}`);
-    console.log(auth)
   }
 
   connectionInit() {
     this.connection.on('error', (error) => {
-      console.log("Connection Error: " + error.toString());
-      this.status = 1;
+      this.status = false;
+      this.callback(false);
+      log.error(error, { message: 'ConnectionError', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
     });
 
     this.connection.on('close', (data) =>  {
-      this.status = 1;
-      console.timeEnd('连接时间');
-      console.log('Connection Closed');
+      this.status = false;
+      log.info(`${this.roomId}已关闭`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
     });
 
     this.connection.on('message', (message) => {
@@ -77,11 +90,11 @@ export default class Client {
           if (messageData[0]) {
             const { msgType, op_userInfo = {} } = messageData[0].ct || {};
             switch (msgType) {
-              case msgTypes.enter: this.addMessageQ(op_userInfo.nick_name);break;
+              case msgTypes.enter: this.addMessageQ(`${this.welcome.prefix}${op_userInfo.nick_name}${this.welcome.postfix}`);break;
             }
           }
         } catch (e) {
-          console.log(e);
+          log.error(e, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
         }
       }
     });
@@ -90,15 +103,14 @@ export default class Client {
     this.sendMessageQConsumer();
   }
 
-  addMessageQ(nick_name) {
-    console.log(nick_name)
-    if (nick_name) {
-      this.messageQ[++this.pointer] = nick_name;
+  addMessageQ(message) {
+    if (message) {
+      this.messageQ[++this.pointer] = message;
     }
   }
 
-  async sendMessage(nick_name) {
-    if (!nick_name) {
+  async sendMessage(message) {
+    if (!message) {
       return;
     }
     // cookie 模拟登陆获取
@@ -126,7 +138,6 @@ export default class Client {
       // 'Hm_lpvt_0f5556da646371aeac76715b71f140dd=1545462826',
       // '__dfp=a0754d8ae271b24810b04c7befe0e6d9e1914939054c533fde56d621014f1a76f2@1545835276280@1544539276280',
     ];
-    console.log(ServerCookie)
     const res = await superagent
       .post(sendMsgUrl)
       .set('User-Agent', userAgent)
@@ -138,19 +149,17 @@ export default class Client {
       .send({
         room_id: this.roomId,
         type: 1,
-        // content: `欢迎 ${nick_name} 进入直播间`,
-        content: '666',
+        content: message,
         // dpf: this.dpf, // 此参数可以不传
-      })
+      });
     if (res.status === 200) {
       if (res.body.code === 200) {
-        console.log('发送成功');
+        return log.info(`发送成功:${message}`, { body: res.body, roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
       } else if (res.code === 201 && res.body.msg === '发言有点频繁哦，稍后再发吧~') {
-        this.addMessageQ(nick_name);
+        return this.addMessageQ(message);
       }
-    } else {
-      console.log('消息发送失败');
     }
+    log.info('消息发送失败', { body: res.body, roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
   }
 
   sendMessageQConsumer() {

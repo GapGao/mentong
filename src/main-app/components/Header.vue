@@ -3,7 +3,7 @@
 <template>
   <div class="header">
     <div class="title">{{ title }}</div>
-    <div class="expired">过期时间 {{ expiredAt }}，如需充值请联系 <span class="manager" @click="onShowWx">管理员</span></div>
+    <div v-if="showExpired" class="expired">过期时间 {{ user.expiredAt | dateFormat }}，如需充值请联系 <span class="manager" @click="onShowWx">管理员</span></div>
     <div class="user">
       <el-popover
         placement="bottom"
@@ -12,9 +12,9 @@
       >
         <ul class="operation">
           <li class="item" @click="onShowWx">联系管理员</li>
-          <li class="item">退出</li>
+          <li class="item" @click="logout">退出</li>
         </ul>
-        <div slot="reference" class="account">账号</div>
+        <div slot="reference" class="account">{{ user.account }}</div>
       </el-popover>
     </div>
   </div>
@@ -22,37 +22,27 @@
 
 <script>
 import moment from 'moment';
+import { mapState } from 'vuex';
+import { logout } from '../apis/user';
 
 export default {
-  data () {
-    return {
-      expiredAt: moment().format('YYYY-MM-DD'),
-    }
-  },
   computed: {
+    ...mapState(['user']),
     title () {
       return this.$route.meta.title || '奇秀直播助理';
+    },
+    showExpired () {
+      return moment().add(3, 'days').isAfter(moment(this.user.expiredAt));
     }
   },
   methods: {
-    onShowWx () {
-      const h = this.$createElement;
-      this.$msgbox({
-        title: '管理员微信二维码',
-        message: h('div', null, [
-          h('img', {
-            attrs: {
-              src: '/images/wexin.jpg',
-            },
-            class: 'wexin',
-          }),
-        ]),
-        distinguishCancelAndClose: true,
-        lockScroll: true,
-        showConfirmButton: false,
-        center: true,
+    logout () {
+      logout()
+      .then(() => window.location.href = '/')
+      .catch((e) => {
+        this.$message(e.body ? e.body.message : '服务器错误');
       });
-    }
+    },
   }
 }
 </script>

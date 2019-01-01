@@ -9,6 +9,7 @@ export const deviceName = '网页端';
 export const agentType = 78;
 export const surl = 1;
 export const isTokenLoginUrl = 'https://passport.pps.tv/apis/qrcode/is_token_login.action';
+export const isTokenLoginOrigin = 'https://passport.pps.tv/apis/qrcode/is_token_login.action';
 export const loginCode = 'A00000';
 export const wsHost = 'wss://broker-qx-ws.iqiyi.com/ws';
 export const wsHost2 = 'wss://broker-qx-ws2.iqiyi.com/ws';

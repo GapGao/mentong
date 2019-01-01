@@ -1,6 +1,18 @@
+import {
+  getMentongHelper,
+} from './services/mentong';
+
+import {
+  getMentongStatusHelper,
+} from './clients';
+
+import httpErrors from './httpErrors';
+
 function checkLogin(req) {
-  return true;
-  // return false;
+  if (req.session && req.session.user) {
+    return true;
+  }
+  return false;
 }
 
 export function checkForPage(req, res, next) {
@@ -15,12 +27,14 @@ export function checkForApi(req, res, next) {
   if (checkLogin(req)) {
     return next();
   }
-  const error = new Error();
-  error.status = 403;
-  error.message = '需要登录才能操作';
-  next(error);
+
+  next(new httpErrors.ForbiddenError('需要登录才能操作'));
 }
 
-export function renderPage(req, res, next) {
-  res.render('main');
+export async function renderPage(req, res, next) {
+  const { user } = req.session;
+  const { mentong = {}, mentongSetting } = await getMentongHelper({ userId: user.id, isCurrent: true });
+  const status = getMentongStatusHelper(user.id, mentong.id);
+  mentong.status = status;
+  res.render('main', { data: { user, mentong, mentongSetting } });
 }

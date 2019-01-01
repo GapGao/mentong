@@ -7,4 +7,10 @@ block append head
 block content
   div#app
 
+  input#init-data(type='hidden' value=JSON.stringify(data))
+
+  script.
+    window.Mentong = window.Mentong || {};
+    window.Mentong.data = JSON.parse(document.getElementById('init-data').value);
+
   script(src='/javascripts/main.js')

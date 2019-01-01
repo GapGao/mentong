@@ -1,14 +1,11 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import Mentong from './containers/Mentong';
+import Profile from './containers/Profile';
 
 Vue.use(VueRouter);
 
 const routes = [
-  {
-    path: '/',
-    redirect: { name: 'mentong' },
-  },
   {
     path: '/mentong',
     name: 'mentong',
@@ -18,7 +15,7 @@ const routes = [
   {
     path: '/profile',
     name: 'profile',
-    component: Mentong,
+    component: Profile,
     meta: { title: '账号信息' }
   },
 ]
