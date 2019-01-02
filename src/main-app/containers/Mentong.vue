@@ -34,7 +34,7 @@
               </el-input>
               <el-input v-model="mentongSetting.welcome.postfix" class="postfix" placeholder="后缀" clearable></el-input>
             </el-form-item>
-            <el-form-item label="感谢语">
+            <!-- <el-form-item label="感谢语">
               <el-input v-model="mentongSetting.thanks.prefix" placeholder="前缀" clearable>
                 <template slot="append">昵称</template>
               </el-input>
@@ -45,7 +45,7 @@
               </el-input>
               <el-input-number v-model="mentongSetting.delayedSending.minutes" class="postfix" :min="1" :max="10" label="描述文字"></el-input-number>
               <span class="minutes">分钟/次</span>
-            </el-form-item>
+            </el-form-item> -->
             <el-button type="primary" size="medium" class="get-qrcode" @click="updateMengongSetting" :disabled="action === 1 || !mentongSetting.roomId">确认</el-button>
           </el-form>
         </el-card>
