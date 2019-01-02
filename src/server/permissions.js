@@ -36,7 +36,7 @@ async function isExpired(userId) {
   return false;
 }
 
-export function checkForApi(req, res, next) {
+export async function checkForApi(req, res, next) {
   if (checkLogin(req)) {
     if (!await isExpired(req.session.userId)) {
       return next();
