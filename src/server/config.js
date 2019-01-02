@@ -15,12 +15,11 @@ const devConfig = {
   mysql: {
     host: 'localhost',
     db: 'mentong',
-    sessionDb: 'moka_session',
     user: 'root',
     password: '',
   },
   redis: {
-    host: process.env.REDIS_HOST || 'localhost',
+    host: 'localhost',
     port: 6379,
   },
 };
@@ -33,18 +32,17 @@ if (env === 'development') {
 } else if (env === 'production') {
   configs = {
     env: 'production',
-    port: process.env.PORT,
+    port: 80,
     expired: 3,
     inviteSecret: 'dabinggejiushidiao',
     mysql: {
-      host: process.env.SQL_HOST_NAME,
-      db: process.env.SQL_DB,
-      sessionDb: process.env.SESSION_DB,
-      user: process.env.SQL_USER_NAME,
-      password: process.env.SQL_PW,
+      host: 'localhost',
+      db: 'mentong',
+      user: 'root',
+      password: 'gaoboai1314',
     },
     redis: {
-      host: process.env.REDIS_HOST || 'localhost',
+      host: 'localhost',
       port: 6379,
     },
   };
