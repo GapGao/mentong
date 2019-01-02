@@ -1,9 +1,11 @@
+import moment from 'moment';
 import {
   getMentongHelper,
 } from './services/mentong';
 
 import {
   getMentongStatusHelper,
+  clearMentong,
 } from './clients';
 
 import httpErrors from './httpErrors';
@@ -23,12 +25,28 @@ export function checkForPage(req, res, next) {
   next();
 }
 
+async function isExpired(userId) {
+  const [user] = await db.select('expired_at as expiredAt')
+  .from('users')
+  .where('id', userId);
+
+  if (moment(user.expiredAt).isBefore(moment())) {
+    return true;
+  }
+  return false;
+}
+
 export function checkForApi(req, res, next) {
   if (checkLogin(req)) {
-    return next();
+    if (!await isExpired(req.session.userId)) {
+      return next();
+    } else {
+      clearMentong(req.session.userId);
+      next(new httpErrors.ForbiddenError('账号已过期'));
+    }
+  } else {
+    next(new httpErrors.ForbiddenError('需要登录才能操作'));
   }
-
-  next(new httpErrors.ForbiddenError('需要登录才能操作'));
 }
 
 export async function renderPage(req, res, next) {

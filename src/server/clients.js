@@ -8,11 +8,13 @@ import Client from './client';
 const clients = {};
 
 export function clearMentong(userId) {
-  const user = clients[userId] || {};
-  Object.values(user).forEach((mentong) => {
-    mentong.close();
-  });
-  delete clients[userId];
+  const user = clients[userId];
+  if (user) {
+    Object.values(user).forEach((mentong) => {
+      mentong.close();
+    });
+    delete clients[userId];
+  }
 }
 
 export function removeMentong(userId, mentongId) {
