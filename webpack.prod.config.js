@@ -4,79 +4,59 @@ var webpack = require('webpack');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
+var paths = {
+  src: {
+    main: path.join(__dirname, 'src/main-app'),
+  },
+  dest: path.join(__dirname, 'src/server/public/javascripts/'),
+};
+
+function resolve (dir) {
+  return path.join(__dirname, '..', dir);
+}
+
 module.exports = {
   entry: {
-    'main-app': path.join(__dirname, 'src/client/main-app/index.js')
+    login: ['babel-polyfill', path.join(paths.src.main, '/login.js')],
+    main: ['babel-polyfill', path.join(paths.src.main, '/index.js')],
   },
   output: {
-    path: path.join(__dirname, 'src/server/public/javascripts/'),
+    path: paths.dest,
     publicPath: '/javascripts/',
     filename: '[name].js'
   },
   resolve: {
-    extensions: ['', '.js', '.vue']
-  },
-  resolveLoader: {
-    root: path.join(__dirname, 'node_modules')
+    extensions: ['.js', '.vue']
   },
   module: {
-    preLoaders: [
+    rules: [
       {
         test: /\.vue$/,
-        loader: 'eslint',
-        exclude: /node_modules/
+        loader: 'vue-loader',
+        options: {
+          extractCSS: true,
+        },
       },
       {
         test: /\.js$/,
-        loader: 'eslint',
-        exclude: /node_modules/
-      }
-    ],
-    loaders: [
-      {
-        test: /\.js$/,
-        loader: 'babel',
+        loader: 'babel-loader',
         exclude: /node_modules/,
-        query: { presets: ['stage-2'] }
-      },
-      {
-        test: /\.vue$/,
-        loader: 'vue'
-      },
-      {
-        test: /\.json$/,
-        loader: 'json'
-      },
-      {
-        test: /\.(png|jpg|gif|svg)(\?.*)?$/,
-        loader: 'url',
-        query: {
-          limit: 10000,
-          name: '[name].[ext]?[hash:7]'
-        }
-      },
-      {
-        test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/,
-        loader: 'url',
-        query: {
-          limit: 10000,
-          name: '[name].[ext]?[hash:7]'
-        }
+        query:{
+          presets: ['es2015', 'stage-3'],  
+        },
       },
       {
         test: /\.css$/,
-        loaders: ['style', 'css'],
-      }
-    ]
-  },
-  vue: {
-    loaders: {
-      css: ExtractTextPlugin.extract('css')
-    }
-  },
-  // devtool: 'eval-source-map',
-  eslint: {
-    formatter: require('eslint-friendly-formatter')
+        use: [
+          'vue-style-loader',
+          'css-loader'
+        ],
+      },
+      {
+        test: /\.(jpg|png|gif|eot|svg|ttf|woff|otf)/,
+        loader: 'url-loader?limit=100000',
+      },
+    ],
   },
   plugins: [
     // short-circuits all Vue.js warning code
@@ -85,15 +65,8 @@ module.exports = {
     }),
     // extract css into its own file
     new ExtractTextPlugin('../stylesheets/[name].css'),
-    // Uglify output js file
-    new webpack.optimize.UglifyJsPlugin({
-      compress: { warnings: false }
-    }),
+    new VueLoaderPlugin(),
     // optimize module ids by occurence count
-    new webpack.optimize.OccurenceOrderPlugin(),
-    new VueLoaderPlugin()
+    new webpack.optimize.OccurrenceOrderPlugin(),
   ],
-  externals: {
-    jquery: 'jQuery',
-  },
 }

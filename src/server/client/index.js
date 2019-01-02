@@ -3,6 +3,7 @@ import superagent from 'superagent-bluebird-promise';
 import getSign from './iqiyiSign';
 import { removeMentong } from '../clients';
 import log from '../log';
+import { getAndSaveActionAuth } from '../services/mentong';
 import {
   sdkVersion,
   wsHost,
@@ -48,9 +49,13 @@ export default class Client {
       this.callback(true);
       log.info(`${this.roomId}已连接`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
 
+      // 6小时自动清除
       setTimeout(() => {
         removeMentong(this.userId, this.mentongId);
-      }, 2 * 60 * 60 * 1000);
+      }, 6 * 60 * 60 * 1000);
+
+      // 获取操作权限
+      this.getActionAuth();
 
       this.connection = connection;
       this.connectionInit();
@@ -69,6 +74,23 @@ export default class Client {
     // wsHost 有别的服务器 尝试连接失败后 换 2
     const authArray = Object.keys(auth).map((key) => `${key}=${auth[key]}`);
     this.client.connect(`${wsHost}?${authArray.join('&')}`);
+  }
+
+  getActionAuth() {
+    getAndSaveActionAuth({ authCookie: this.authCookie, deviceId: this.deviceId, userId: this.userId, mentongId: this.mentongId})
+    .then((actionAuth) => {
+      if (actionAuth) {
+        this.actionAuth = actionAuth;
+      }
+    });
+    this.actionAuthTimer = setInterval(async () => {
+      getAndSaveActionAuth({ authCookie: this.authCookie, deviceId: this.deviceId, userId: this.userId, mentongId: this.mentongId})
+      .then((actionAuth) => {
+        if (actionAuth) {
+          this.actionAuth = actionAuth;
+        }
+      });
+    }, 60 * 60 * 1000);
   }
 
   connectionInit() {
@@ -163,7 +185,7 @@ export default class Client {
   }
 
   sendMessageQConsumer() {
-    this.timer = setInterval(() => {
+    this.messageTimer = setInterval(() => {
       const top = Object.keys(this.messageQ)[0];
       if (top) {
         this.sendMessage(this.messageQ[top]);
@@ -182,11 +204,13 @@ export default class Client {
   }
 
   close() {
-    clearInterval(this.timer);
+    clearInterval(this.messageTimer);
     clearInterval(this.pingTimer);
     clearInterval(this.pongTimer);
+    clearInterval(this.actionAuthTimer);
     this.messageQ = {};
     this.client.abort();
+    log.info('连接关闭', { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
     this.connection = null;
     this.client = null;
   }

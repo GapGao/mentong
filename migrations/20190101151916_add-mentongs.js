@@ -10,7 +10,7 @@ exports.up = async function(knex, Promise) {
     table.boolean('status').defaultTo(false);
     table.dateTime('login_at');
     table.boolean('is_current').defaultTo(false);
-    table.string('login_info');
+    table.text('login_info');
     table.string('auth_cookie');
     table.string('device_id');
     table.string('action_auth');

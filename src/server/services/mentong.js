@@ -24,14 +24,16 @@ import {
   origin,
 } from '../constant';
 
-async function getActionAuth(authCookie, deviceId) {
+export async function getAndSaveActionAuth({ authCookie, deviceId, userId, mentongId }) {
   if (!authCookie || !deviceId) {
-    throw httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
+    return null;
   }
+
   const ServerCookie = [
     `QC005=${deviceId}`,
     `P00001=${authCookie}`,
   ];
+
   const res = await superagent
   .get(getActionAuthUrl)
   .set('User-Agent', userAgent)
@@ -39,14 +41,26 @@ async function getActionAuth(authCookie, deviceId) {
   .set('Cookie', ServerCookie.join(';'))
   .set('Host', host)
   .set('Referer', origin);
+
   if (res.status === 200) {
-    const cookies = res.header['set-cookie'];
-    const actionAuth = cookies[0].split(';')[0];
-    // 入库 登录成功
-    // 返回mentongId等
+    const cookies = res.header['set-cookie'][0].split('; ');
+    let actionAuth = '';
+    for (const cookie of cookies) {
+      if (/^x_[a-z0-9_-]{5}/.test(cookie)) {
+        actionAuth = cookie;
+        break;
+      }
+    }
+    await db('mentongs')
+    .update({
+      action_auth: actionAuth,
+    })
+    .where('user_id', userId)
+    .where('id', mentongId);
+
     return actionAuth;
   } else {
-    throw httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
+    return null;
   }
 }
 
@@ -96,7 +110,6 @@ export async function mentongLoginHelper(token, userId, time) {
         try {
           const { nickname, user_name, uid } = JSON.parse(res.text).data.userinfo;
           const { authCookie, deviceId } = calcCookies(res);
-          const actionAuth = await getActionAuth(authCookie, deviceId);
 
           const [existMentong] = await db.select('id')
           .from('mentongs')
@@ -117,7 +130,6 @@ export async function mentongLoginHelper(token, userId, time) {
               login_info: res.text,
               auth_cookie: authCookie,
               device_id: deviceId,
-              action_auth: actionAuth,
               is_current: true,
               login_at: new Date(),
               token,
@@ -133,7 +145,6 @@ export async function mentongLoginHelper(token, userId, time) {
               login_info: res.text,
               auth_cookie: authCookie,
               device_id: deviceId,
-              action_auth: actionAuth,
               is_current: true,
               login_at: new Date(),
               token,

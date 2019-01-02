@@ -1,6 +1,7 @@
 /* eslint-disable */
 var webpack = require('webpack');
 var path = require('path');
+var ExtractTextPlugin = require('extract-text-webpack-plugin');
 var VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 var paths = {
@@ -32,7 +33,10 @@ module.exports = {
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader'
+        loader: 'vue-loader',
+        options: {
+          extractCSS: true,
+        },
       },
       {
         test: /\.js$/,
@@ -57,6 +61,7 @@ module.exports = {
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
+    new ExtractTextPlugin('../stylesheets/[name].css'),
     new webpack.DefinePlugin({
       __DEVTOOLS__: true,
       __PORT__: 3001,
