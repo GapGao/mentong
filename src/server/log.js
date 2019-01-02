@@ -56,14 +56,14 @@ const mentongLogger = createLogger({
     {
       type: 'rotating-file',
       level: 'info',
-      path: path.join(__dirname, '../../../logs', `${moment().format("YYYY-MM-DD")}-info.log`),
+      path: path.join(__dirname, '../../../logs', `mentong-${moment().format("YYYY-MM-DD")}.log`),
       period: '1d',
       count: 7,
     },
     {
       type: 'rotating-file',
       level: 'error',
-      path: path.join(__dirname, '../../../logs', `${moment().format("YYYY-MM-DD")}-error.log`),
+      path: path.join(__dirname, '../../../logs', `mentong-${moment().format("YYYY-MM-DD")}.log`),
       period: '1d',
       count: 7,
     }
