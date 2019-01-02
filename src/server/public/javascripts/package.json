@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "compression": "^1.7.3"
+  }
+}

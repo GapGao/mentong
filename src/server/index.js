@@ -4,6 +4,7 @@ import createError from 'http-errors';
 import express from 'express';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
+import compression from 'compression';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
@@ -13,6 +14,7 @@ import config from './config';
 const app = express();
 const RedisStrore = connectRedis(session);
 
+app.use(compression());
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
