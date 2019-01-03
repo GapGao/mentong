@@ -1,4 +1,3 @@
-
 exports.up = async function(knex, Promise) {
   await knex.schema.createTable('invite_codes', (table) => {
     table.increments();

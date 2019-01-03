@@ -19,20 +19,24 @@ import {
 
 const WebSocketClient = websocket.client;
 export default class Client {
-  constructor({ userId, mentongId, roomId, deviceId, authCookie, actionAuth, welcome, thanks, delayedSending, dpf, callback = () => {} }) {
+  constructor({ userId, mentongId, roomId, deviceId, authCookie, actionAuth, welcome, thanks, follow, delayedSending, dpf, callback = () => {} }) {
     this.userId = userId;
     this.mentongId = mentongId;
     this.roomId = roomId;
     this.deviceId = deviceId;
     this.authCookie = authCookie;
     this.actionAuth = actionAuth;
-    this.welcome = welcome;
-    this.thanks = thanks;
-    this.delayedSending = delayedSending;
+    this.welcome = welcome || {};
+    this.thanks = thanks || {};
+    this.follow = follow || {};
+    this.delayedSending = delayedSending || {};
     this.callback = callback;
     this.dpf = dpf;
 
     this.messageQ = {};
+    this.timeoutEntities = {};
+    this.intervalEntities = {};
+
     this.pointer = 1;
     this.client = new WebSocketClient();
 
@@ -50,12 +54,11 @@ export default class Client {
       log.info(`${this.roomId}已连接`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
 
       // 6小时自动清除
-      setTimeout(() => {
-        removeMentong(this.userId, this.mentongId);
-      }, 6 * 60 * 60 * 1000);
+      this.addTimer('timeout', 'stopTimer', () => removeMentong(this.userId, this.mentongId), 6 * 60 * 60 * 1000);
 
       // 获取操作权限
       this.getActionAuth();
+      this.addTimer('interval', 'actionAuthTimer', this.getActionAuth, 60 * 60 * 1000);
 
       this.connection = connection;
       this.connectionInit();
@@ -83,14 +86,6 @@ export default class Client {
         this.actionAuth = actionAuth;
       }
     });
-    this.actionAuthTimer = setInterval(async () => {
-      getAndSaveActionAuth({ authCookie: this.authCookie, deviceId: this.deviceId, userId: this.userId, mentongId: this.mentongId})
-      .then((actionAuth) => {
-        if (actionAuth) {
-          this.actionAuth = actionAuth;
-        }
-      });
-    }, 60 * 60 * 1000);
   }
 
   connectionInit() {
@@ -105,24 +100,64 @@ export default class Client {
       log.info(`${this.roomId}已关闭`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
     });
 
-    this.connection.on('message', (message) => {
-      if (message.utf8Data && message.utf8Data !== 'PINGREP') {
-        try {
-          const messageData = JSON.parse(message.utf8Data);
-          if (messageData[0]) {
-            const { msgType, op_userInfo = {} } = messageData[0].ct || {};
-            switch (msgType) {
-              case msgTypes.enter: this.addMessageQ(`${this.welcome.prefix}${op_userInfo.nick_name}${this.welcome.postfix}`);break;
-            }
+    this.connection.on('message', this.watch.bind(this));
+    this.addTimer('interval', 'pingpongTimer', this.pingpong, pingPongTime);
+    this.addTimer('interval', 'sendMessageQConsumeTimer', this.sendMessageQConsumer, 4000);
+    this.initDelayedSending();
+  }
+
+  watch(message) {
+    if (message.utf8Data && message.utf8Data !== 'PINGREP') {
+      try {
+        const messageData = JSON.parse(message.utf8Data);
+        if (messageData[0]) {
+          const { msgType, op_userInfo = {}, op_info = {} } = messageData[0].ct || {};
+          switch (msgType) {
+            case msgTypes.enter: this.checkAndFormatAndAddMessageQ(this.welcome, op_userInfo.nick_name);break;
+            case msgTypes.gift: this.checkAndFormatAndAddMessageQ(this.thanks, op_userInfo.nick_name);break;
+            case msgTypes.follow: op_info.type === 'create' && this.checkAndFormatAndAddMessageQ(this.follow, op_userInfo.nick_name);break;
           }
-        } catch (e) {
-          log.error(e, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
         }
+      } catch (e) {
+        log.error(e, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
       }
+    }
+  }
+
+  addTimer(type, name, func, time) {
+    if (type === 'timeout') {
+      this.timeoutEntities[name] = setTimeout(func.bind(this), time);
+    }
+
+    if (type === 'interval') {
+      this.intervalEntities[name] = setInterval(func.bind(this), time);
+    }
+  }
+
+  clearTimer() {
+    Object.values(this.timeoutEntities).forEach((timer) => {
+      clearTimeout(timer);
     });
 
-    this.pingpong();
-    this.sendMessageQConsumer();
+    Object.values(this.intervalEntities).forEach((timer) => {
+      clearInterval(timer);
+    });
+  }
+
+  checkAndFormatAndAddMessageQ(setting, nick_name) {
+    const { prefix = '', postfix = '' } = setting;
+    if (!nick_name || (!prefix && !postfix)) {
+      return;
+    }
+    this.addMessageQ(`${prefix}${nick_name}${postfix}`);
+  }
+
+  initDelayedSending() {
+    const { msg, minutes } = this.delayedSending;
+    if (!msg) {
+      return;
+    }
+    this.addTimer('interval', 'delayedSendingTimer', () => this.addMessageQ(msg), (minutes < 1 ? 1 : minutes) * 60 * 1000);
   }
 
   addMessageQ(message) {
@@ -185,29 +220,20 @@ export default class Client {
   }
 
   sendMessageQConsumer() {
-    this.messageTimer = setInterval(() => {
-      const top = Object.keys(this.messageQ)[0];
-      if (top) {
-        this.sendMessage(this.messageQ[top]);
-        delete this.messageQ[top];
-      }
-    }, 4000);
+    const top = Object.keys(this.messageQ)[0];
+    if (top) {
+      this.sendMessage(this.messageQ[top]);
+      delete this.messageQ[top];
+    }
   }
 
   pingpong() {
-    this.pingTimer = setInterval(() => {
-      this.connection.sendUTF('PINGREQ');
-    }, pingPongTime);
-    this.pongTimer = setInterval(() => {
-      this.connection.sendUTF('PINGREP');
-    }, pingPongTime);
+    this.connection.sendUTF('PINGREQ');
+    this.connection.sendUTF('PINGREP');
   }
 
   close() {
-    clearInterval(this.messageTimer);
-    clearInterval(this.pingTimer);
-    clearInterval(this.pongTimer);
-    clearInterval(this.actionAuthTimer);
+    this.clearTimer();
     this.messageQ = {};
     this.client.abort();
     log.info('连接关闭', { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });

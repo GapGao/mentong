@@ -29,6 +29,10 @@ const store = new Vuex.Store({
         prefix: '',
         postfix: '',
       },
+      follow: {
+        prefix: '',
+        postfix: '',
+      },
       delayedSending: {
         msg: '',
         minutes: 1,

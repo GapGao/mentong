@@ -1,4 +1,3 @@
-
 exports.up = async function(knex, Promise) {
   await knex.schema.createTable('mentongs', (table) => {
     table.increments();

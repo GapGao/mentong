@@ -40,7 +40,7 @@ export function createMentong(userId, mentongId, setting) {
 
 export function getMentongStatusHelper(userId, mentongId) {
   if (clients[userId] && clients[userId][mentongId]) {
-    return clients[userId][mentongId].status;
+    return clients[userId][mentongId].status || false;
   }
   return false;
 }

@@ -108,7 +108,7 @@ export async function mentongLoginHelper(token, userId, time) {
     } else {
       if (result.code === loginCode) {
         try {
-          const { nickname, user_name, uid } = JSON.parse(res.text).data.userinfo;
+          const { nickname, user_name, uid, phone, email } = JSON.parse(res.text).data.userinfo;
           const { authCookie, deviceId } = calcCookies(res);
 
           const [existMentong] = await db.select('id')
@@ -127,6 +127,8 @@ export async function mentongLoginHelper(token, userId, time) {
             .update({
               user_name,
               nick_name: nickname,
+              phone,
+              email,
               login_info: res.text,
               auth_cookie: authCookie,
               device_id: deviceId,
@@ -142,6 +144,8 @@ export async function mentongLoginHelper(token, userId, time) {
               user_id: userId,
               user_name,
               nick_name: nickname,
+              phone,
+              email,
               login_info: res.text,
               auth_cookie: authCookie,
               device_id: deviceId,
@@ -191,8 +195,10 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
     'id', 'nick_name as nickName',
     'user_name as userName', 'status',
     'login_at as loginAt', 'is_current as isCurrent',
-    'room_id as roomId', 'welcome_prefix as welcomePrefix', 'welcome_postfix as welcomePostfix',
+    'room_id as roomId',
+    'welcome_prefix as welcomePrefix', 'welcome_postfix as welcomePostfix',
     'thanks_prefix as thanksPrefix', 'thanks_postfix as thanksPostfix',
+    'follow_prefix as followPrefix', 'follow_postfix as followPostfix',
     'delayed_sending_msg as delayedSendingMsg',
     'delayed_sending_minutes as delayedSsendingMinutes',
   )
@@ -248,6 +254,10 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
       prefix: row.thanksPrefix,
       postfix: row.thanksPostfix,
     },
+    follow: {
+      prefix: row.followPrefix,
+      postfix: row.followPostfix,
+    },
     delayedSending: {
       msg: row.delayedSendingMsg,
       minutes: row.delayedSsendingMinutes,
@@ -269,7 +279,7 @@ export async function updateMengongSettingHelper({ mentongId, setting = {}, user
     throw new httpErrors.BadRequestError('门童不存在');
   }
 
-  const { roomId, welcome, thanks, delayedSending } = setting;
+  const { roomId, welcome, thanks, follow, delayedSending } = setting;
 
   await db('mentongs')
   .update({
@@ -278,6 +288,8 @@ export async function updateMengongSettingHelper({ mentongId, setting = {}, user
     welcome_postfix: welcome.postfix,
     thanks_prefix: thanks.prefix,
     thanks_postfix: thanks.postfix,
+    follow_prefix: follow.prefix,
+    follow_postfix: follow.postfix,
     delayed_sending_msg: delayedSending.msg,
     delayed_sending_minutes: delayedSending.minutes,
   })

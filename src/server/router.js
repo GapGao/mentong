@@ -39,18 +39,18 @@ router.get('/', checkForPage, (req, res) => res.redirect('/mentong'))
 
 router.get(['/mentong*', '/profile*'], checkForPage, renderPage);
 
-router.get('/token', checkForApi, getQrcodeTokenUrl);
-
-router.get('/isTokenLogin/:token', checkForApi, isTokenLogin);
-
 router.get('/qrcode', checkForApi, getQrcode);
 
-router.put('/mentong/:mentongId/setting', checkForApi, updateMentongSetting);
+router.get('/api/token', checkForApi, getQrcodeTokenUrl);
 
-router.post('/mentong/:mentongId/open', checkForApi, openMentong);
+router.get('/api/isTokenLogin/:token', checkForApi, isTokenLogin);
 
-router.post('/mentong/:mentongId/close', checkForApi, closeMentong);
+router.put('/api/mentong/:mentongId/setting', checkForApi, updateMentongSetting);
 
-router.get('/mentong/:mentongId/status', checkForApi, getMentongStatus);
+router.post('/api/mentong/:mentongId/open', checkForApi, openMentong);
+
+router.post('/api/mentong/:mentongId/close', checkForApi, closeMentong);
+
+router.get('/api/mentong/:mentongId/status', checkForApi, getMentongStatus);
 
 export default router;
