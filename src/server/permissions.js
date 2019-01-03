@@ -1,4 +1,5 @@
 import moment from 'moment';
+import db from './db';
 import {
   getMentongHelper,
 } from './services/mentong';
@@ -38,7 +39,7 @@ async function isExpired(userId) {
 
 export async function checkForApi(req, res, next) {
   if (checkLogin(req)) {
-    if (!await isExpired(req.session.userId)) {
+    if (!await isExpired(req.session.user.id)) {
       return next();
     } else {
       clearMentong(req.session.userId);
