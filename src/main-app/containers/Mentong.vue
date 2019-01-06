@@ -16,7 +16,7 @@
             <el-form-item label="昵称">
               <el-input v-model="mentong.nickName" disabled></el-input>
             </el-form-item>
-            <el-button v-if="mentong.id" type="primary" size="medium" class="change" @click="getQrcodeTokenUrl">换账号</el-button>
+            <el-button v-if="mentong.id && !needLogin" type="primary" size="medium" class="change" @click="getQrcodeTokenUrl">换账号</el-button>
             <el-button type="primary" size="medium" class="get-qrcode" @click="getQrcodeTokenUrl" :disabled="!needLogin">{{  needLogin ? '扫码登录' : '已登录' }}</el-button>
           </el-form>
         </el-card>

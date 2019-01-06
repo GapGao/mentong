@@ -15,6 +15,7 @@ import {
   host,
   pingPongTime,
   origin,
+  PING_MSG,
 } from '../constant';
 
 const WebSocketClient = websocket.client;
@@ -42,27 +43,6 @@ export default class Client {
 
     this.status = false;
 
-    this.client.on('connectFailed', (error) => {
-      this.status = false;
-      this.callback(false);
-      log.error(error, { message: 'connectFailed', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
-    });
-   
-    this.client.on('connect', (connection) => {
-      this.status = true;
-      this.callback(true);
-      log.info(`${this.roomId}已连接`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
-
-      // 6小时自动清除
-      this.addTimer('timeout', 'stopTimer', () => removeMentong(this.userId, this.mentongId), 6 * 60 * 60 * 1000);
-
-      // 获取操作权限
-      this.getActionAuth();
-      this.addTimer('interval', 'actionAuthTimer', this.getActionAuth, 60 * 60 * 1000);
-
-      this.connection = connection;
-      this.connectionInit();
-    });
     const auth = {
       v: sdkVersion,
       p: 1,
@@ -75,8 +55,52 @@ export default class Client {
     };
     auth.sg = getSign(auth); // 签名
     // wsHost 有别的服务器 尝试连接失败后 换 2
+
+    this.client.on('connect', (connection) => {
+      this.status = true;
+      this.callback(true);
+      log.info(`${this.roomId}已连接`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+      this.connection = connection;
+      this.connectionInit();
+    });
+    
+    this.client.on('connectFailed', (error) => {
+      this.status = false;
+      this.callback(false);
+      removeMentong(this.userId, this.mentongId);
+      log.error(error, { message: 'connectFailed', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+    });
+
     const authArray = Object.keys(auth).map((key) => `${key}=${auth[key]}`);
     this.client.connect(`${wsHost}?${authArray.join('&')}`);
+  }
+
+  connectionInit() {
+    this.connection.on('error', (error) => {
+      this.status = false;
+      this.callback(false);
+      removeMentong(this.userId, this.mentongId);
+      log.error(error, { message: 'ConnectionError', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+    });
+
+    this.connection.on('close', (data) =>  {
+      this.status = false;
+      this.callback(false);
+      removeMentong(this.userId, this.mentongId);
+      log.info(`${this.roomId}已关闭`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+    });
+
+    this.connection.on('message', this.watch.bind(this));
+    this.addTimer('interval', 'pingpongTimer', this.pingpong, pingPongTime);
+    this.addTimer('interval', 'sendMessageQConsumeTimer', this.sendMessageQConsumer, 4000);
+    this.initDelayedSending();
+    // 6小时自动清除
+    this.addTimer('timeout', 'stopTimer', () => removeMentong(this.userId, this.mentongId), 6 * 60 * 60 * 1000);
+
+    // 获取操作权限
+    this.getActionAuth();
+    this.addTimer('interval', 'actionAuthTimer', this.getActionAuth, 60 * 60 * 1000);
+
   }
 
   getActionAuth() {
@@ -86,24 +110,6 @@ export default class Client {
         this.actionAuth = actionAuth;
       }
     });
-  }
-
-  connectionInit() {
-    this.connection.on('error', (error) => {
-      this.status = false;
-      this.callback(false);
-      log.error(error, { message: 'ConnectionError', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
-    });
-
-    this.connection.on('close', (data) =>  {
-      this.status = false;
-      log.info(`${this.roomId}已关闭`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
-    });
-
-    this.connection.on('message', this.watch.bind(this));
-    this.addTimer('interval', 'pingpongTimer', this.pingpong, pingPongTime);
-    this.addTimer('interval', 'sendMessageQConsumeTimer', this.sendMessageQConsumer, 4000);
-    this.initDelayedSending();
   }
 
   watch(message) {
@@ -228,8 +234,7 @@ export default class Client {
   }
 
   pingpong() {
-    this.connection.sendUTF('PINGREQ');
-    this.connection.sendUTF('PINGREP');
+    this.connection.sendUTF(PING_MSG);
   }
 
   close() {

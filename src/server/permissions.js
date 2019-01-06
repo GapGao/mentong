@@ -43,6 +43,7 @@ export async function checkForApi(req, res, next) {
       return next();
     } else {
       clearMentong(req.session.userId);
+      delete req.session.user;
       next(new httpErrors.ForbiddenError('账号已过期'));
     }
   } else {
