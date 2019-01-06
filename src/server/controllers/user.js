@@ -6,11 +6,10 @@ import {
   deleteInviteCodeHelper,
   createUserHelper,
   createInviteCodeHelper,
-  clearMentong,
 } from '../services/user';
 
 import {
-  clear
+  clearMentong,
 } from '../clients';
 
 export async function login(req, res, next) {
@@ -41,7 +40,9 @@ export async function login(req, res, next) {
 
 export async function logout(req, res, next) {
   try {
-    clearMentong(req.session.user.id);
+    if (req.session.user) {
+      clearMentong(req.session.user.id);
+    }
     req.session.user = null;
     res.clearCookie('connect.sid');
 

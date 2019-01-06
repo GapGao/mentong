@@ -43,14 +43,14 @@ app.use(function(req, res, next) {
 });
 
 // error handler
-app.use(function(err, req, res) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+app.use((err, res) => {
+  console.log(222)
+  if (!err.status) {
+    log.error(err);
+    err.status = 500;
+    err.message = '服务器错误';
+  }
+  res.status(err.status).json({ message: err.message });
 });
 
 const port = normalizePort( config.port || '3001');
