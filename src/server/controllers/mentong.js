@@ -1,4 +1,5 @@
 import qr from 'qr-image';
+import httpErrors from '../httpErrors';
 import {
   getQrcodeTokenUrlHelper,
   getMentongHelper,
@@ -59,7 +60,7 @@ export async function openMentong(req, res, next) {
     if (result) {
       return res.status(200).send({ message: '启动成功' });
     } else {
-      return res.status(400).send({ message: '启动失败' });
+      return next(new httpErrors.BadRequestError('启动失败'));
     }
   } catch (e) {
     next(e);

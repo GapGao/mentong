@@ -1,5 +1,6 @@
 import moment from 'moment';
 import config from '../config';
+import httpErrors from '../httpErrors';
 import {
   getUserHelper,
   getInviteCodeHelper,
@@ -17,17 +18,17 @@ export async function login(req, res, next) {
     const { account, password } = req.body;
 
     if (!account || !password) {
-      return res.status(400).json({ message: '用户名或密码错误' });
+      return next(new httpErrors.BadRequestError('用户名或密码错误'));
     }
 
     const user = await getUserHelper({ account, password });
     
     if (!user) {
-      return res.status(403).json({ message: '用户名或密码错误' });
+      return next(new httpErrors.ForbiddenError('用户名或密码错误'));
     }
 
     if (moment(user.expiredAt).isBefore(moment())) {
-      return res.status(403).json({ message: '账号已过期' });
+      return next(new httpErrors.ForbiddenError('账号已过期'));
     }
 
     req.session.user = user;
@@ -56,28 +57,28 @@ export async function register(req, res, next) {
   try {
     const { account, password, confirmPassword, inviteCode } = req.body;
     if (!account || !password || !confirmPassword || !inviteCode) {
-      return res.status(400).json({ message: '缺少参数' });
+      return next(new httpErrors.BadRequestError('缺少参数'));
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ message: '确认密码错误' });
+      return next(new httpErrors.BadRequestError('确认密码错误'));
     }
 
     const user = await getUserHelper({ account });
 
     if (user) {
-      return res.status(400).json({ message: '用户已存在' });
+      return next(new httpErrors.BadRequestError('用户已存在'));
     }
 
     const code = await getInviteCodeHelper(inviteCode);
 
     if (!code) {
-      return res.status(403).json({ message: '邀请码不正确，请联系管理员获取' });
+      return next(new httpErrors.ForbiddenError('邀请码不正确，请联系管理员获取'));
     }
 
     if (moment(code.expiredAt).isBefore(moment())) {
       await deleteInviteCodeHelper({ codeId: code.id });
-      return res.status(403).json({ message: '邀请码已过期，请联系管理员获取' });
+      return next(new httpErrors.ForbiddenError('邀请码已过期，请联系管理员获取'));
     }
 
     await createUserHelper({ account, password });
@@ -95,7 +96,7 @@ export async function getInviteCode(req, res, next) {
     const { secret } = req.query;
 
     if (secret !== config.inviteSecret) {
-      return res.status(400).json({ message: '密码错误' });
+      return next(new httpErrors.BadRequestError('密码错误'));
     }
 
     const code = await createInviteCodeHelper();

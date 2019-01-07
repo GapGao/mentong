@@ -8,6 +8,7 @@ import compression from 'compression';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
+import log from './log';
 
 import router from './router';
 import config from './config';
@@ -37,20 +38,19 @@ app.use(session({
 
 app.use('/', router);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
-});
-
 // error handler
-app.use((err, res) => {
-  console.log(222)
+app.use(function(err, req, res, next) {
   if (!err.status) {
     log.error(err);
     err.status = 500;
     err.message = '服务器错误';
   }
   res.status(err.status).json({ message: err.message });
+});
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404));
 });
 
 const port = normalizePort( config.port || '3001');
