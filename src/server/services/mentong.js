@@ -196,11 +196,7 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
     'user_name as userName', 'status',
     'login_at as loginAt', 'is_current as isCurrent',
     'room_id as roomId',
-    'welcome_prefix as welcomePrefix', 'welcome_postfix as welcomePostfix',
-    'thanks_prefix as thanksPrefix', 'thanks_postfix as thanksPostfix',
-    'follow_prefix as followPrefix', 'follow_postfix as followPostfix',
-    'delayed_sending_msg as delayedSendingMsg',
-    'delayed_sending_minutes as delayedSsendingMinutes',
+    'welcome', 'thanks', 'follow', 'delayed_sending as delayedSending',
   )
   .from('mentongs')
   .orderBy('updated_at', 'desc');
@@ -246,22 +242,10 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
 
   const mentongSetting = {
     roomId: row.roomId,
-    welcome: {
-      prefix: row.welcomePrefix,
-      postfix: row.welcomePostfix,
-    },
-    thanks: {
-      prefix: row.thanksPrefix,
-      postfix: row.thanksPostfix,
-    },
-    follow: {
-      prefix: row.followPrefix,
-      postfix: row.followPostfix,
-    },
-    delayedSending: {
-      msg: row.delayedSendingMsg,
-      minutes: row.delayedSsendingMinutes,
-    },
+    welcome: JSON.parse(row.welcome),
+    thanks: JSON.parse(row.thanks),
+    follow: JSON.parse(row.follow),
+    delayedSending: JSON.parse(row.delayedSending),
   }
 
   return { mentong, mentongSetting };
@@ -284,14 +268,10 @@ export async function updateMengongSettingHelper({ mentongId, setting = {}, user
   await db('mentongs')
   .update({
     room_id: roomId,
-    welcome_prefix: welcome.prefix,
-    welcome_postfix: welcome.postfix,
-    thanks_prefix: thanks.prefix,
-    thanks_postfix: thanks.postfix,
-    follow_prefix: follow.prefix,
-    follow_postfix: follow.postfix,
-    delayed_sending_msg: delayedSending.msg,
-    delayed_sending_minutes: delayedSending.minutes,
+    welcome: JSON.stringify(welcome),
+    thanks: JSON.stringify(thanks),
+    follow: JSON.stringify(follow),
+    delayed_sending: JSON.stringify(delayedSending),
   })
   .where('id', mentong.id);
 }

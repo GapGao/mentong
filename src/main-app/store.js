@@ -21,20 +21,20 @@ const store = new Vuex.Store({
     },
     mentongSetting: {
       roomId: null,
-      welcome: {
+      welcome: [{
         prefix: '',
         postfix: '',
-      },
-      thanks: {
+      }],
+      thanks: [{
         prefix: '',
         postfix: '',
-      },
-      follow: {
+      }],
+      follow: [{
         prefix: '',
         postfix: '',
-      },
+      }],
       delayedSending: {
-        msg: '',
+        msgs: [{ msg: '' }],
         minutes: 1,
       },
     },
@@ -48,11 +48,46 @@ const store = new Vuex.Store({
         state.mentong = Object.assign(state.mentong, mentong);
       }
       if (mentongSetting) {
-        state.mentongSetting = Object.assign(state.mentongSetting, mentongSetting);
+        const { roomId, welcome, thanks, follow, delayedSending } = mentongSetting;
+        state.mentongSetting.roomId = roomId;
+        if (welcome && welcome.length) {
+          state.mentongSetting.welcome = mentongSetting.welcome;
+        }
+        if (thanks && thanks.length) {
+          state.mentongSetting.thanks = mentongSetting.thanks;
+        }
+        if (follow && follow.length) {
+          state.mentongSetting.follow = mentongSetting.follow;
+        }
+        if (delayedSending) {
+          if (delayedSending.msgs.length) {
+            state.mentongSetting.delayedSending.msgs = mentongSetting.delayedSending.msgs;
+          }
+          if (delayedSending.minutes) {
+            state.mentongSetting.delayedSending.minutes = mentongSetting.delayedSending.minutes;
+          }
+        }
       }
     },
     updateMentongStatus (state, { status }) {
       state.mentong.status = status;
+    },
+    addSetting (state, { type }) {
+      if (type === 'delayedSending') {
+        state.mentongSetting.delayedSending.msgs.push({ msg: '' });
+      } else {
+        state.mentongSetting[type].push({
+          prefix: '',
+          postfix: '',
+        });
+      }
+    },
+    removeSetting(state, { type, index }) {
+      if (type === 'delayedSending') {
+        state.mentongSetting.delayedSending.msgs.splice(index, 1);
+      } else {
+        state.mentongSetting[type].splice(index, 1);
+      }
     },
   },
 });

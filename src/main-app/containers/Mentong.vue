@@ -2,7 +2,7 @@
   <div>
     <el-steps :active="action" align-center>
       <el-step title="步骤1" description="请先申请一个爱奇艺账号，取一个自己喜欢的名字，用爱奇艺APP登录该账号，使用APP扫点击“扫码登录”生成的二维码，登录账号"></el-step>
-      <el-step title="步骤2" description="设置房间号，观众进入，收到礼物，定时发送等消息的设置，完成后点击确认保存设置，有些消息会不合法，请尝试设置合法的消息"></el-step>
+      <el-step title="步骤2" description="设置房间号，观众进入，收到礼物，定时发送等消息的设置，完成后点击确认保存设置，有些消息会不合法，请尝试设置合法的消息，消息随机发送"></el-step>
       <el-step title="步骤3" description="点击启动/关闭门童，每次启动持续6小时，然后需要手动重新启动，关闭此页面，账号退出，手动关闭都会导致门童下线"></el-step>
     </el-steps>
     <el-row :gutter="12" class="actions">
@@ -29,26 +29,41 @@
               <el-input v-model="mentongSetting.roomId" clearable></el-input>
             </el-form-item>
             <el-form-item label="欢迎语">
-              <el-input v-model="mentongSetting.welcome.prefix" placeholder="前缀" clearable>
-                <template slot="append">昵称</template>
-              </el-input>
-              <el-input v-model="mentongSetting.welcome.postfix" class="postfix" placeholder="后缀" clearable></el-input>
+              <div v-for="(welcome, index) in mentongSetting.welcome" class="setting-item">
+                <el-input v-model="welcome.prefix" placeholder="前缀" clearable>
+                  <template slot="append">昵称</template>
+                </el-input>
+                <el-input v-model="welcome.postfix" class="postfix" placeholder="后缀" clearable></el-input>
+                <div v-if="mentongSetting.welcome.length > 1" class="remove" @click="removeSetting({ type: 'welcome', index })"><span class="el-icon-remove-outline"></span></div>
+              </div>
+              <div class="add" v-if="mentongSetting.welcome.length < 5" @click="addSetting({ type: 'welcome' })"><span class="el-icon-circle-plus-outline"></span></div>
             </el-form-item>
             <el-form-item label="礼物感谢语">
-              <el-input v-model="mentongSetting.thanks.prefix" placeholder="前缀" clearable>
-                <template slot="append">昵称</template>
-              </el-input>
-              <el-input v-model="mentongSetting.thanks.postfix" class="postfix" placeholder="后缀" clearable></el-input>
+              <div v-for="(thanks, index) in mentongSetting.thanks" class="setting-item">
+                 <el-input v-model="thanks.prefix" placeholder="前缀" clearable>
+                  <template slot="append">昵称</template>
+                </el-input>
+                <el-input v-model="thanks.postfix" class="postfix" placeholder="后缀" clearable></el-input>
+                <div v-if="mentongSetting.thanks.length > 1" class="remove" @click="removeSetting({ type: 'thanks', index })"><span class="el-icon-remove-outline"></span></div>
+              </div>
+              <div class="add" v-if="mentongSetting.thanks.length < 5" @click="addSetting({ type: 'thanks' })"><span class="el-icon-circle-plus-outline"></span></div>
             </el-form-item>
             <el-form-item label="关注感谢语">
-              <el-input v-model="mentongSetting.follow.prefix" placeholder="前缀" clearable>
-                <template slot="append">昵称</template>
-              </el-input>
-              <el-input v-model="mentongSetting.follow.postfix" class="postfix" placeholder="后缀" clearable></el-input>
+              <div v-for="(follow, index) in mentongSetting.follow" class="setting-item">
+                <el-input v-model="follow.prefix" placeholder="前缀" clearable>
+                  <template slot="append">昵称</template>
+                </el-input>
+                <el-input v-model="follow.postfix" class="postfix" placeholder="后缀" clearable></el-input>
+                <div v-if="mentongSetting.follow.length > 1" class="remove" @click="removeSetting({ type: 'follow', index })"><span class="el-icon-remove-outline"></span></div>
+              </div>
+              <div class="add" v-if="mentongSetting.follow.length < 5" @click="addSetting({ type: 'follow' })"><span class="el-icon-circle-plus-outline"></span></div>
             </el-form-item>
             <el-form-item label="定时发送">
-              <el-input v-model="mentongSetting.delayedSending.msg" clearable>
-              </el-input>
+              <div v-for="(msg, index) in mentongSetting.delayedSending.msgs" class="delayed-sending setting-item">
+                <el-input v-model="msg.msg" clearable></el-input>
+                <div v-if="mentongSetting.delayedSending.msgs.length > 1" class="remove" @click="removeSetting({ type: 'delayedSending', index })"><span class="el-icon-remove-outline"></span></div>
+              </div>
+              <div class="add" v-if="mentongSetting.delayedSending.msgs.length < 5" @click="addSetting({ type: 'delayedSending' })"><span class="el-icon-circle-plus-outline"></span></div>
               <el-input-number v-model="mentongSetting.delayedSending.minutes" class="postfix" :min="1" :max="10" label="描述文字"></el-input-number>
               <span class="minutes">分钟/次</span>
             </el-form-item>
@@ -112,7 +127,7 @@ export default {
     },
   },
   methods: {
-    ...mapMutations(['updateMentong', 'updateMentongStatus']),
+    ...mapMutations(['updateMentong', 'updateMentongStatus', 'addSetting', 'removeSetting']),
     getQrcodeTokenUrl () {
       getQrcodeTokenUrl()
       .then((res) => {
@@ -162,7 +177,14 @@ export default {
       }, 1000);
     },
     updateMengongSetting () {
-      updateMengongSetting(this.mentong.id, this.mentongSetting)
+      const setting = { ...this.mentongSetting };
+      const { welcome, thanks, follow, delayedSending } = setting;
+      setting.welcome = welcome.filter(({ prefix, postfix }) => (prefix || postfix));
+      setting.thanks = thanks.filter(({ prefix, postfix }) => (prefix || postfix));
+      setting.follow = follow.filter(({ prefix, postfix }) => (prefix || postfix));
+      setting.delayedSending.msgs = delayedSending.msgs.filter(({ msg }) => msg);
+
+      updateMengongSetting(this.mentong.id, setting)
       .then(() => {
         this.confirmSetting = true;
         this.$message('修改成功');
@@ -234,14 +256,21 @@ export default {
 
   .action {
     position: relative;
-    height: 680px;
+  }
+
+  .el-card__body:after {
+    clear: both;
+    content: '';
+    overflow: hidden;
+    height: 0;
+    display: block;
   }
 
   .mentong-title {
     font-size: 16px;
     line-height: 32px;
     text-align: center;
-    margin: 15px 0;
+    margin-bottom: 15px;
   }
   
   .change {
@@ -286,6 +315,34 @@ export default {
 
   .openBtn, .closeBtn {
     float: right;
+  }
+  
+  .delayed-sending {
+    margin-bottom: 12px;
+  }
+
+  .setting-item {
+    position: relative;
+    width: 85%;
+    margin-bottom: 10px;
+  }
+
+  .remove {
+    position: absolute;
+    font-size: 20px;
+    right: -35px;
+    top: 28px;
+    cursor: pointer;
+  }
+
+  .delayed-sending .remove {
+    top: 0;
+  }
+
+  .add {
+    font-size: 20px;
+    cursor: pointer;
+    width: 20px;
   }
   
 </style>

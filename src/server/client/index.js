@@ -27,10 +27,10 @@ export default class Client {
     this.deviceId = deviceId;
     this.authCookie = authCookie;
     this.actionAuth = actionAuth;
-    this.welcome = welcome || {};
-    this.thanks = thanks || {};
-    this.follow = follow || {};
-    this.delayedSending = delayedSending || {};
+    this.welcome = welcome || [];
+    this.thanks = thanks || [];
+    this.follow = follow || [];
+    this.delayedSending = delayedSending || { msgs: [], minutes: 1 };
     this.callback = callback;
     this.dpf = dpf;
 
@@ -151,7 +151,10 @@ export default class Client {
   }
 
   checkAndFormatAndAddMessageQ(setting, nick_name) {
-    const { prefix = '', postfix = '' } = setting;
+    if (!setting.length) {
+      return;
+    }
+    const { prefix = '', postfix = '' } = setting[Math.floor(Math.random() * setting.length)] || {};
     if (!nick_name || (!prefix && !postfix)) {
       return;
     }
@@ -159,11 +162,15 @@ export default class Client {
   }
 
   initDelayedSending() {
-    const { msg, minutes } = this.delayedSending;
-    if (!msg) {
+    let { msgs = [], minutes } = this.delayedSending;
+    msgs = msgs.filter(({msg}) => msg);
+    if (!msgs.length) {
       return;
     }
-    this.addTimer('interval', 'delayedSendingTimer', () => this.addMessageQ(msg), (minutes < 1 ? 1 : minutes) * 60 * 1000);
+    this.addTimer('interval', 'delayedSendingTimer', () => {
+      const { msg } = (msgs[Math.floor(Math.random() * msgs.length)] || {});
+      this.addMessageQ(msg);
+    }, (Number(minutes) || 1) * 60 * 1000);
   }
 
   addMessageQ(message) {
