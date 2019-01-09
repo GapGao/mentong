@@ -3,7 +3,7 @@
 <template>
   <div class="header">
     <div class="title">{{ title }}</div>
-    <div v-if="showExpired" class="expired">过期时间 {{ user.expiredAt | dateFormat }}，如需充值请联系 <span class="manager" @click="onShowWx">管理员</span></div>
+    <div class="expired"><span v-if="showExpired">过期时间 {{ user.expiredAt | dateFormat }}，如需充值，或</span>购买协议号请联系 <span class="manager" @click="onShowWx">【管理员】</span></div>
     <div class="user">
       <el-popover
         placement="bottom"
