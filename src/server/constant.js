@@ -21,7 +21,17 @@ export const host = 'x.pps.tv';
 export const origin = 'https://x.pps.tv';
 export const referer = 'https://x.pps.tv/room/';
 export const sendMsgUrl = 'https://x.pps.tv/action/userDo';
-export const msgTypes = { enter: 200001, gift: 102002, follow: 102003 };
+export const msgTypes = { enter: 200001, gift: 102002, follow: 102003, nobilityOrGuard: 105001, setManager: 101005, setTemporaryManager: 101007 };
+// 贵族等级
+export const nobility = {
+  1 : "爵士",
+  2 : "男爵",
+  3 : "子爵",
+  4 : "伯爵",
+  5 : "侯爵",
+  6 : "公爵",
+  7 : "国王",
+};
 export const PING_MSG = "PINGREQ";
 export const PONG_MSG = "PINGREP";
 export const sdkVersion = '2.05.2801';

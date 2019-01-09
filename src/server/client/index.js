@@ -16,6 +16,7 @@ import {
   pingPongTime,
   origin,
   PING_MSG,
+  nobility,
 } from '../constant';
 
 const WebSocketClient = websocket.client;
@@ -117,11 +118,14 @@ export default class Client {
       try {
         const messageData = JSON.parse(message.utf8Data);
         if (messageData[0]) {
-          const { msgType, op_userInfo = {}, op_info = {} } = messageData[0].ct || {};
+          const { msgType, op_userInfo = {}, op_info = {}, to_userInfo = {} } = messageData[0].ct || {};
           switch (msgType) {
             case msgTypes.enter: this.checkAndFormatAndAddMessageQ(this.welcome, op_userInfo.nick_name);break;
             case msgTypes.gift: this.checkAndFormatAndAddMessageQ(this.thanks, op_userInfo.nick_name);break;
             case msgTypes.follow: op_info.type === 'create' && this.checkAndFormatAndAddMessageQ(this.follow, op_userInfo.nick_name);break;
+            case msgTypes.nobilityOrGuard: this.nobilityOrGuardResponseMessage(op_info.type, op_userInfo.nick_name, op_userInfo.badge_level, (op_info.guard_user || {}).nick_name);break;
+            case msgTypes.setManager: this.setManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);break;
+            case msgTypes.setTemporaryManager: this.setTemporaryManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);break;
           }
         }
       } catch (e) {
@@ -159,6 +163,22 @@ export default class Client {
       return;
     }
     this.addMessageQ(`${prefix}${nick_name}${postfix}`);
+  }
+
+  nobilityOrGuardResponseMessage(type, fromNickName = '', badgeLevel, toNickName = '') {
+    if (type === 3) {
+      this.addMessageQ(`恭喜${fromNickName}荣升为${nobility[badgeLevel]}`);
+    } else {
+      this.addMessageQ(`感谢${fromNickName}为${toNickName || '主播'}保驾护航`);
+    }
+  }
+
+  setManagerResponseMessage(fromNickName = '', toNickName = '') {
+    this.addMessageQ(`恭喜${toNickName}被${fromNickName || '主播'}提升为管理员`);
+  }
+
+  setTemporaryManagerResponseMessage(fromNickName, toNickName) {
+    this.addMessageQ(`恭喜${toNickName}被${fromNickName || '主播'}提升为临时管理员`);
   }
 
   initDelayedSending() {

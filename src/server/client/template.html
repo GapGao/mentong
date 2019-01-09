@@ -1,0 +1,35 @@
+<li class="msg">
+    <div class="row">
+        <%=iconList%>
+        <a class="name green" href="javascript:void(0)" node-type="userHoverTip"  data-user_id="<%=fromUserId%>" data-nick_name="<%-fromNickName%>"><%-fromNickName%></a>
+        <% if(type==3){ %>
+            <span class="nr">荣升为</span>
+            <span class="bought"><%=name%></span>
+        <% }else{ %>
+            <span class="nr">为</span>
+            <a class="name" href="javascript:void(0)" node-type="userHoverTip"  data-user_id="<%=toUserId%>" data-nick_name="<%-toNickName%>"><%-toNickName%></a>
+            <span class="bought"><%=name%></span>
+        <% }% >
+    </div>
+</li>
+
+
+<li class="msg">
+    <div class="row">
+        <%if(!isLive){%>
+            <%if(toUserId){%>
+                <a class="name" href="javascript:void(0);" node-type="userHoverTip"  data-user_id="<%=toUserId%>" data-nick_name="<%-toNickName%>">
+                    <%-toNickName%>
+                </a>
+                <%if(!noPassive){%>
+                    <span class="nr">被</span>
+                <%}%>
+            <%}%>
+            <%if(fromUserId && !noPassive){%>
+                <a class="name" href="javascript:void(0);" node-type="userHoverTip"  data-user_id="<%=fromUserId%>" data-nick_name="<%-fromNickName%>">
+                <%-fromNickName%></a>
+            <%}%>
+        <%}%>
+        <span class="<%=isLive?"start-end":"sys"%>"><%-behavior%></span>
+    </div>
+</li>
