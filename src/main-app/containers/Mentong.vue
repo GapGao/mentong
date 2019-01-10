@@ -3,7 +3,7 @@
     <el-steps :active="action" align-center>
       <el-step title="步骤1" description="请先申请一个爱奇艺账号，取一个自己喜欢的名字，用爱奇艺APP登录该账号，使用APP扫点击“扫码登录”生成的二维码，登录账号"></el-step>
       <el-step title="步骤2" description="设置房间号，观众进入，收到礼物，定时发送等消息的设置，完成后点击确认保存设置，有些消息会不合法，请尝试设置合法的消息，消息随机发送，开通贵族或守护，设置管理员等会自动感谢或恭喜"></el-step>
-      <el-step title="步骤3" description="点击启动/关闭门童，每次启动持续6小时，然后需要手动重新启动，关闭此页面，账号退出，手动关闭都会导致门童下线"></el-step>
+      <el-step title="步骤3" description="点击启动/关闭门童，每次启动持续6小时，然后需要手动重新启动，账号退出，手动关闭都会导致门童下线"></el-step>
     </el-steps>
     <el-row :gutter="12" class="actions">
       <el-col :span="8">
