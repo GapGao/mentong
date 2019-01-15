@@ -22,6 +22,7 @@ import {
   qrCodeTimeout,
   loginCode,
   origin,
+  saveInfoUrl,
 } from '../constant';
 
 export async function getAndSaveActionAuth({ authCookie, deviceId, userId, mentongId }) {
@@ -77,7 +78,7 @@ function calcCookies(res) {
     }
   });
   if (!authCookie || !deviceId) {
-    throw httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
+    throw new httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
   }
   return { authCookie, deviceId };
 }
@@ -161,7 +162,7 @@ export async function mentongLoginHelper(token, userId, time) {
       }
     }
   } else {
-    throw httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
+    throw new httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
   }
 }
 
@@ -185,7 +186,7 @@ export async function getQrcodeTokenUrlHelper(userId) {
     mentongLoginHelper(token, userId);
     return { token, url };
   } else {
-    throw httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
+    throw new httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
   }
 }
 
@@ -196,7 +197,7 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
     'user_name as userName', 'status',
     'login_at as loginAt', 'is_current as isCurrent',
     'room_id as roomId',
-    'welcome', 'thanks', 'follow', 'delayed_sending as delayedSending',
+    'welcome', 'welcome_level', 'thanks', 'follow', 'delayed_sending as delayedSending',
   )
   .from('mentongs')
   .orderBy('updated_at', 'desc');
@@ -242,6 +243,7 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
 
   const mentongSetting = {
     roomId: row.roomId,
+    welcomeLevel: row.welcome_level,
     welcome: JSON.parse(row.welcome),
     thanks: JSON.parse(row.thanks),
     follow: JSON.parse(row.follow),
@@ -263,7 +265,7 @@ export async function updateMengongSettingHelper({ mentongId, setting = {}, user
     throw new httpErrors.BadRequestError('门童不存在');
   }
 
-  const { roomId, welcome, thanks, follow, delayedSending } = setting;
+  const { roomId, welcome, welcomeLevel, thanks, follow, delayedSending } = setting;
 
   await db('mentongs')
   .update({
@@ -272,6 +274,7 @@ export async function updateMengongSettingHelper({ mentongId, setting = {}, user
     thanks: JSON.stringify(thanks),
     follow: JSON.stringify(follow),
     delayed_sending: JSON.stringify(delayedSending),
+    welcome_level: welcomeLevel,
   })
   .where('id', mentong.id);
 }
@@ -303,4 +306,43 @@ export async function closeMentongHelper({ mentongId, userId }) {
   }
 
   await removeMentong(userId, mentongId)
+}
+
+export async function updateNickNameHelper(userId, mentongId, nickName) {
+  const { mentong } = await getMentongHelper({ mentongId, userId, withCookie: true });
+  const actionAuth = await getAndSaveActionAuth({ authCookie: mentong.authCookie, deviceId: mentong.deviceId, userId, mentongId })
+  if (actionAuth) {
+    mentong.actionAuth = actionAuth;
+  }
+  const ServerCookie = [
+    `QC005=${mentong.deviceId}`,
+    mentong.actionAuth,
+    `P00001=${mentong.authCookie}`,
+  ];
+
+  const res = await superagent
+  .post(saveInfoUrl)
+  .set('Host', host)
+  .set('Cookie', ServerCookie.join(';'))
+  .set('User-Agent', userAgent)
+  .set('Content-Type', contentType)
+  .set('Origin', origin)
+  .set('Referer', 'https://x.pps.tv/home/baseInfo')
+  .send({
+    name: nickName,
+  });
+
+  if (res.status === 200) {
+    const { code, msg } = res.body || {};
+    if (code === 200 && msg === 'SUCCESS') {
+      await db('mentongs')
+      .update({ nick_name: nickName })
+      .where('user_id', userId)
+      .where('id', mentongId)
+    } else {
+      throw new httpErrors.BadRequestError(msg);
+    }
+  } else {
+    throw new httpErrors.BadRequestError('修改昵称失败');
+  }
 }

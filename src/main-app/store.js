@@ -21,6 +21,7 @@ const store = new Vuex.Store({
     },
     mentongSetting: {
       roomId: null,
+      welcomeLevel: 1,
       welcome: [{
         prefix: '',
         postfix: '',
@@ -48,23 +49,27 @@ const store = new Vuex.Store({
         state.mentong = Object.assign(state.mentong, mentong);
       }
       if (mentongSetting) {
-        const { roomId, welcome, thanks, follow, delayedSending } = mentongSetting;
+        const { roomId, welcome, welcomeLevel, thanks, follow, delayedSending } = mentongSetting;
         state.mentongSetting.roomId = roomId;
+        welcomeLevel
         if (welcome && welcome.length) {
-          state.mentongSetting.welcome = mentongSetting.welcome;
+          state.mentongSetting.welcome = welcome;
+        }
+        if (welcomeLevel) {
+          state.mentongSetting.welcomeLevel = welcomeLevel;
         }
         if (thanks && thanks.length) {
-          state.mentongSetting.thanks = mentongSetting.thanks;
+          state.mentongSetting.thanks = thanks;
         }
         if (follow && follow.length) {
-          state.mentongSetting.follow = mentongSetting.follow;
+          state.mentongSetting.follow = follow;
         }
         if (delayedSending) {
           if (delayedSending.msgs.length) {
-            state.mentongSetting.delayedSending.msgs = mentongSetting.delayedSending.msgs;
+            state.mentongSetting.delayedSending.msgs = delayedSending.msgs;
           }
           if (delayedSending.minutes) {
-            state.mentongSetting.delayedSending.minutes = mentongSetting.delayedSending.minutes;
+            state.mentongSetting.delayedSending.minutes = delayedSending.minutes;
           }
         }
       }

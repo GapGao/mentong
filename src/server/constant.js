@@ -21,7 +21,7 @@ export const host = 'x.pps.tv';
 export const origin = 'https://x.pps.tv';
 export const referer = 'https://x.pps.tv/room/';
 export const sendMsgUrl = 'https://x.pps.tv/action/userDo';
-export const msgTypes = { enter: 200001, gift: 102002, follow: 102003, nobilityOrGuard: 105001, setManager: 101005, setTemporaryManager: 101007 };
+export const msgTypes = { enter: 200001, gift: 102001, gift2: 102002, follow: 102003, nobilityOrGuard: 105001, setManager: 101005, setTemporaryManager: 101007 };
 // 贵族等级
 export const nobility = {
   1 : "爵士",
@@ -40,3 +40,6 @@ export const pingPongTime = 60000;
 export const qrCodeTimeout = 60000;
 export const authCookieKey = 'P00001';
 export const deviceIdKey = 'QC005';
+export const saveInfoUrl = 'https://x.pps.tv/home/saveInfo/';
+export const roomRankListUrl = 'https://x.pps.tv/api/room/roomRankList';
+export const liveRankListUrl = 'https://x.pps.tv/api/room/liveRankList';

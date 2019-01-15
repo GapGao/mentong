@@ -45,3 +45,10 @@ export function getMentongStatus(mentongId) {
   .get(`/api/mentong/${mentongId}/status`)
   .catch(check);
 }
+
+export function editNickName(mentongId, nickName) {
+  return superagent
+  .put(`/api/mentong/${mentongId}/nickname`)
+  .send({ nickName })
+  .catch(check);
+}

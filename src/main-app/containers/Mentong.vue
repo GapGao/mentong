@@ -1,8 +1,9 @@
 <template>
   <div>
+    <!-- <iframe id="login_frame" height="500px" scrolling="no" width="460px" frameborder="0" src="//www.pps.tv/iframe/loginreg"></iframe> -->
     <el-steps :active="action" align-center>
       <el-step title="步骤1" description="请先申请一个爱奇艺账号，取一个自己喜欢的名字，用爱奇艺APP登录该账号，使用APP扫点击“扫码登录”生成的二维码，登录账号"></el-step>
-      <el-step title="步骤2" description="设置房间号，观众进入，收到礼物，定时发送等消息的设置，完成后点击确认保存设置，有些消息会不合法，请尝试设置合法的消息，消息随机发送，开通贵族或守护，设置管理员等会自动感谢或恭喜"></el-step>
+      <el-step title="步骤2" description="设置房间号，观众进入，收到礼物，定时发送等消息的设置，完成后点击确认保存设置，有些消息会不合法，请尝试设置合法的消息，消息随机发送。表情请输入文字如[大笑][开心][挑眉]等，发消息时会自动识别替换。贵族或守护，贡献榜，设置管理员等会自动添加进消息，自动感谢或恭喜"></el-step>
       <el-step title="步骤3" description="点击启动/关闭门童，每次启动持续6小时，然后需要手动重新启动，启动后此页面可以关闭。账号退出，手动关闭都会导致门童下线"></el-step>
     </el-steps>
     <el-row :gutter="12" class="actions">
@@ -13,8 +14,13 @@
             <el-form-item label="账号">
               <el-input v-model="mentong.userName" disabled></el-input>
             </el-form-item>
-            <el-form-item label="昵称">
-              <el-input v-model="mentong.nickName" disabled></el-input>
+          </el-form>
+          <el-form label-width="40px" :inline="true" :model="mentong">
+            <el-form-item label="昵称" class="nick-name">
+              <el-input v-model="mentong.nickName" :disabled="!editName"></el-input>
+            </el-form-item>
+            <el-form-item class="edit-name">
+              <el-button type="primary" @click="editNickName" :disabled="!mentong.nickName">{{ editName ? '保存' : '修改' }}</el-button>
             </el-form-item>
             <el-button v-if="mentong.id && !needLogin" type="primary" size="medium" class="change" @click="getQrcodeTokenUrl">换账号</el-button>
             <el-button type="primary" size="medium" class="get-qrcode" @click="getQrcodeTokenUrl" :disabled="!needLogin">{{  needLogin ? '扫码登录' : '已登录' }}</el-button>
@@ -27,6 +33,9 @@
           <el-form label-width="100px" :model="mentongSetting">
             <el-form-item label="房间号">
               <el-input v-model="mentongSetting.roomId" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="欢迎魅力等级限制">
+              <el-input-number v-model="mentongSetting.welcomeLevel" class="postfix" :min="1" label="欢迎等级限制"></el-input-number>
             </el-form-item>
             <el-form-item label="欢迎语">
               <div v-for="(welcome, index) in mentongSetting.welcome" class="setting-item">
@@ -43,7 +52,9 @@
                  <el-input v-model="thanks.prefix" placeholder="前缀" clearable>
                   <template slot="append">昵称</template>
                 </el-input>
-                <el-input v-model="thanks.postfix" class="postfix" placeholder="后缀" clearable></el-input>
+                <el-input v-model="thanks.postfix" class="postfix" placeholder="后缀" clearable>
+                  <template slot="append">几个什么</template>
+                </el-input>
                 <div v-if="mentongSetting.thanks.length > 1" class="remove" @click="removeSetting({ type: 'thanks', index })"><span class="el-icon-remove-outline"></span></div>
               </div>
               <div class="add" v-if="mentongSetting.thanks.length < 5" @click="addSetting({ type: 'thanks' })"><span class="el-icon-circle-plus-outline"></span></div>
@@ -98,6 +109,7 @@ import {
   openMentong,
   closeMentong,
   getMentongStatus,
+  editNickName,
 } from '../apis/mentong';
 
 export default {
@@ -105,6 +117,7 @@ export default {
     return {
       confirmSetting: false,
       timer: null,
+      editName: false,
     };
   },
   computed: {
@@ -113,7 +126,7 @@ export default {
       if (!this.mentong.id) {
         return true;
       } else {
-        return moment().isAfter(moment(this.mentong.loginAt).add(1, 'day'));
+        return moment().isAfter(moment(this.mentong.loginAt).add(2, 'day'));
       }
     },
     action () {
@@ -233,6 +246,20 @@ export default {
         this.$message(e.body ? e.body.message : '服务器错误');
       });
     },
+    editNickName() {
+      if (this.editName) {
+        editNickName(this.mentong.id, this.mentong.nickName)
+        .then(() => {
+          this.editName = false;
+          this.$message('修改成功');
+        })
+        .catch((e) => {
+          this.$message(e.body ? e.body.message : '服务器错误');
+        });
+      } else {
+        this.editName = true;
+      }
+    }
   },
   mounted () {
     if (this.mentong.id && this.mentong.status) {
@@ -344,5 +371,11 @@ export default {
     cursor: pointer;
     width: 20px;
   }
-  
+
+  .nick-name .el-form-item__content {
+    width: 224px;
+  }
+  .el-form-item.edit-name {
+    margin-right: 0;
+  }
 </style>

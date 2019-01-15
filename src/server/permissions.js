@@ -57,7 +57,6 @@ export async function checkForApi(req, res, next) {
 
 export async function renderPage(req, res, next) {
   const user = await getUserHelper({ userId: req.session.user.id });
-  delete user.password;
   const { mentong = {}, mentongSetting } = await getMentongHelper({ userId: user.id, isCurrent: true });
   const status = getMentongStatusHelper(user.id, mentong.id);
   mentong.status = status;

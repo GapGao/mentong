@@ -6,6 +6,7 @@ import {
   updateMengongSettingHelper,
   openMentongHelper,
   closeMentongHelper,
+  updateNickNameHelper,
 } from '../services/mentong';
 import { getMentongStatusHelper } from '../clients';
 
@@ -84,6 +85,18 @@ export function getMentongStatus(req, res, next) {
     const { mentongId } = req.params;
     const status = getMentongStatusHelper(user.id, mentongId);
     return res.status(200).send({ status });
+  } catch (e) {
+    next(e);
+  }
+}
+
+export async function updateNickName(req, res, next) {
+  try {
+    const { user } = req.session;
+    const { mentongId } = req.params;
+    const { nickName } = req.body;
+    await updateNickNameHelper(user.id, mentongId, nickName);
+    return res.status(200).send();
   } catch (e) {
     next(e);
   }

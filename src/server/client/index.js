@@ -17,11 +17,13 @@ import {
   origin,
   PING_MSG,
   nobility,
+  roomRankListUrl,
+  liveRankListUrl,
 } from '../constant';
 
 const WebSocketClient = websocket.client;
 export default class Client {
-  constructor({ userId, mentongId, roomId, deviceId, authCookie, actionAuth, welcome, thanks, follow, delayedSending, dpf, callback = () => {} }) {
+  constructor({ userId, mentongId, roomId, deviceId, authCookie, actionAuth, welcome, welcomeLevel, thanks, follow, delayedSending, dpf, callback = () => {} }) {
     this.userId = userId;
     this.mentongId = mentongId;
     this.roomId = roomId;
@@ -29,11 +31,15 @@ export default class Client {
     this.authCookie = authCookie;
     this.actionAuth = actionAuth;
     this.welcome = welcome || [];
+    this.welcomeLevel = welcomeLevel || 1;
     this.thanks = thanks || [];
     this.follow = follow || [];
     this.delayedSending = delayedSending || { msgs: [], minutes: 1 };
     this.callback = callback;
     this.dpf = dpf;
+    this.liveRank = {};
+    this.currentWeekRoomRank = {};
+    this.prevWeekRoomRank = {};
 
     this.messageQ = {};
     this.timeoutEntities = {};
@@ -76,7 +82,7 @@ export default class Client {
     this.client.connect(`${wsHost}?${authArray.join('&')}`);
   }
 
-  connectionInit() {
+  async connectionInit() {
     this.connection.on('error', (error) => {
       this.status = false;
       this.callback(false);
@@ -99,18 +105,21 @@ export default class Client {
     this.addTimer('timeout', 'stopTimer', () => removeMentong(this.userId, this.mentongId), 6 * 60 * 60 * 1000);
 
     // 获取操作权限
-    this.getActionAuth();
+    await this.getActionAuth();
     this.addTimer('interval', 'actionAuthTimer', this.getActionAuth, 60 * 60 * 1000);
 
+    // 获取贡献榜
+    await this.getRoomRankList('current');
+    await this.getRoomRankList('prev');
+    await this.getLiveRankList();
+    this.addTimer('interval', 'liveRankTimer', this.getLiveRankList, 60 * 1000);
   }
 
-  getActionAuth() {
-    getAndSaveActionAuth({ authCookie: this.authCookie, deviceId: this.deviceId, userId: this.userId, mentongId: this.mentongId})
-    .then((actionAuth) => {
-      if (actionAuth) {
-        this.actionAuth = actionAuth;
-      }
-    });
+  async getActionAuth() {
+    const actionAuth = await getAndSaveActionAuth({ authCookie: this.authCookie, deviceId: this.deviceId, userId: this.userId, mentongId: this.mentongId})
+    if (actionAuth) {
+      this.actionAuth = actionAuth;
+    }
   }
 
   watch(message) {
@@ -120,9 +129,10 @@ export default class Client {
         if (messageData[0]) {
           const { msgType, op_userInfo = {}, op_info = {}, to_userInfo = {} } = messageData[0].ct || {};
           switch (msgType) {
-            case msgTypes.enter: this.checkAndFormatAndAddMessageQ(this.welcome, op_userInfo.nick_name);break;
-            case msgTypes.gift: this.checkAndFormatAndAddMessageQ(this.thanks, op_userInfo.nick_name);break;
-            case msgTypes.follow: op_info.type === 'create' && this.checkAndFormatAndAddMessageQ(this.follow, op_userInfo.nick_name);break;
+            case msgTypes.enter: this.enterWelcomeResponseMessage(this.welcome, op_userInfo);break;
+            case msgTypes.gift: this.giftThanksResponseMessage(this.thanks, op_userInfo, op_info.name, op_info.num);break;
+            case msgTypes.gift2: this.giftThanksResponseMessage(this.thanks, op_userInfo, '星光', op_info.star_num);break;
+            case msgTypes.follow: op_info.type === 'create' && this.followResponseMessage(this.follow, op_userInfo.nick_name, op_userInfo.badge_level);break;
             case msgTypes.nobilityOrGuard: this.nobilityOrGuardResponseMessage(op_info.type, op_userInfo.nick_name, op_userInfo.badge_level, (op_info.guard_user || {}).nick_name);break;
             case msgTypes.setManager: this.setManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);break;
             case msgTypes.setTemporaryManager: this.setTemporaryManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);break;
@@ -154,7 +164,7 @@ export default class Client {
     });
   }
 
-  checkAndFormatAndAddMessageQ(setting, nick_name) {
+  followResponseMessage(setting, nick_name, badge_level) {
     if (!setting.length) {
       return;
     }
@@ -162,7 +172,55 @@ export default class Client {
     if (!nick_name || (!prefix && !postfix)) {
       return;
     }
-    this.addMessageQ(`${prefix}${nick_name}${postfix}`);
+    let extra = '';
+    const badge = nobility[badge_level];
+    if (badge) {
+      extra = `${badge}大人`;
+    }
+    this.addMessageQ(`${prefix}${extra}${nick_name}${postfix}`);
+  }
+
+  getExtra(user_id, badge_level) {
+    let extra = '';
+    if (this.liveRank[user_id]) {
+      extra = `本场榜第${this.liveRank[user_id]}名`;
+    } else if (this.currentWeekRoomRank[user_id]) {
+      extra = `本周榜第${this.currentWeekRoomRank[user_id]}名`;
+    } else if (this.prevWeekRoomRank[user_id]) {
+      extra = `上周榜第${this.prevWeekRoomRank[user_id]}名`;
+    }
+
+    if (!extra) {
+      const badge = nobility[badge_level];
+      extra = badge ? `${badge}大人` : '';
+    }
+  }
+
+  enterWelcomeResponseMessage(setting, op_userInfo) {
+    const { user_id, nick_name, badge_level, charm_level } = op_userInfo;
+    if (!setting.length || charm_level < this.welcomeLevel) {
+      return;
+    }
+
+    const { prefix = '', postfix = '' } = setting[Math.floor(Math.random() * setting.length)] || {};
+    if (!nick_name || (!prefix && !postfix)) {
+      return;
+    }
+
+    this.addMessageQ(`${prefix}${this.getExtra(user_id, badge_level)}${nick_name}${postfix}`);
+  }
+
+  giftThanksResponseMessage(setting, op_userInfo, giftName, num) {
+    if (!setting.length) {
+      return;
+    }
+    const { user_id, nick_name, badge_level } = op_userInfo;
+    const { prefix = '', postfix = '' } = setting[Math.floor(Math.random() * setting.length)] || {};
+    if (!nick_name || (!prefix && !postfix)) {
+      return;
+    }
+
+    this.addMessageQ(`${prefix}${this.getExtra(user_id, badge_level)}${nick_name}${postfix}${num > 1 ? `${num}个` : ''}${giftName}`);
   }
 
   nobilityOrGuardResponseMessage(type, fromNickName = '', badgeLevel, toNickName = '') {
@@ -250,6 +308,77 @@ export default class Client {
       }
     }
     log.info('消息发送失败', { body: res.body, roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+  }
+
+  async getRoomRankList(type) {
+    const ServerCookie = [
+      `QC005=${this.deviceId}`,
+      this.actionAuth,
+      `P00001=${this.authCookie}`,
+    ];
+  
+    const res = await superagent
+    .post(roomRankListUrl)
+    .set('Host', host)
+    .set('Cookie', ServerCookie.join(';'))
+    .set('User-Agent', userAgent)
+    .set('Content-Type', contentType)
+    .set('Origin', origin)
+    .set('Host', host)
+    .set('Referer', `${referer}/${this.roomId}`)
+    .send({
+      room_id: this.roomId,
+      week: type || 'current',
+    });
+
+    if (res.status === 200) {
+      if (res.body.code === 200) {
+        const { items = [] } = res.body.data;
+        if (type === 'current') {
+          this.currentWeekRoomRank = {};
+          items.forEach((item) => {
+            this.currentWeekRoomRank[item.user_id] = item.rank;
+          });
+        } else {
+          this.prevWeekRoomRank = {};
+          items.forEach((item) => {
+            this.prevWeekRoomRank[item.user_id] = item.rank;
+          });
+        }
+        
+      }
+    }
+  }
+
+  async getLiveRankList() {
+    const ServerCookie = [
+      `QC005=${this.deviceId}`,
+      this.actionAuth,
+      `P00001=${this.authCookie}`,
+    ];
+  
+    const res = await superagent
+    .post(liveRankListUrl)
+    .set('Host', host)
+    .set('Cookie', ServerCookie.join(';'))
+    .set('User-Agent', userAgent)
+    .set('Content-Type', contentType)
+    .set('Origin', origin)
+    .set('Host', host)
+    .set('Referer', `${referer}/${this.roomId}`)
+    .send({
+      room_id: this.roomId,
+    });
+
+    if (res.status === 200) {
+      if (res.body.code === 200) {
+        const { items = [] } = res.body.data;
+        this.liveRank = {};
+        items.forEach((item) => {
+          this.liveRank[item.user_id] = item.rank;
+        });
+      }
+    }
   }
 
   sendMessageQConsumer() {

@@ -21,6 +21,7 @@ import {
   openMentong,
   closeMentong,
   getMentongStatus,
+  updateNickName,
 } from './controllers/mentong';
 
 // user
@@ -52,5 +53,7 @@ router.post('/api/mentong/:mentongId/open', checkForApi, openMentong);
 router.post('/api/mentong/:mentongId/close', checkForApi, closeMentong);
 
 router.get('/api/mentong/:mentongId/status', checkForApi, getMentongStatus);
+
+router.put('/api/mentong/:mentongId/nickname', checkForApi, updateNickName);
 
 export default router;
