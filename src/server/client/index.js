@@ -1,9 +1,13 @@
 import websocket from 'websocket';
 import superagent from 'superagent-bluebird-promise';
 import getSign from './iqiyiSign';
-import { removeMentong } from '../clients';
+import {
+  removeMentong
+} from '../clients';
 import log from '../log';
-import { getAndSaveActionAuth } from '../services/mentong';
+import {
+  getAndSaveActionAuth
+} from '../services/mentong';
 import {
   sdkVersion,
   wsHost,
@@ -23,7 +27,22 @@ import {
 
 const WebSocketClient = websocket.client;
 export default class Client {
-  constructor({ userId, mentongId, roomId, deviceId, authCookie, actionAuth, welcome, welcomeLevel, thanks, follow, delayedSending, dpf, callback = () => {} }) {
+  constructor({
+    userId,
+    mentongId,
+    roomId,
+    deviceId,
+    authCookie,
+    actionAuth,
+    welcome,
+    welcomeLevel,
+    thanks,
+    follow,
+    designated = [],
+    delayedSending,
+    dpf,
+    callback = () => {}
+  }) {
     this.userId = userId;
     this.mentongId = mentongId;
     this.roomId = roomId;
@@ -34,7 +53,16 @@ export default class Client {
     this.welcomeLevel = welcomeLevel || 1;
     this.thanks = thanks || [];
     this.follow = follow || [];
-    this.delayedSending = delayedSending || { msgs: [], minutes: 1 };
+    this.designated = {};
+    designated.forEach(({ msg, res }) => {
+      msg.split('；').filter((m) => !!m).forEach((m) => {
+        this.designated[m] = res;
+      })
+    })
+    this.delayedSending = delayedSending || {
+      msgs: [],
+      minutes: 1
+    };
     this.callback = callback;
     this.dpf = dpf;
     this.liveRank = {};
@@ -57,7 +85,7 @@ export default class Client {
       r: this.roomId,
       d: this.deviceId,
       at: this.authCookie ? 2 : 3,
-      ak: this.authCookie ? this.authCookie: this.deviceId,
+      ak: this.authCookie ? this.authCookie : this.deviceId,
       ag: 1
     };
     auth.sg = getSign(auth); // 签名
@@ -66,16 +94,25 @@ export default class Client {
     this.client.on('connect', (connection) => {
       this.status = true;
       this.callback(true);
-      log.info(`${this.roomId}已连接`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+      log.info(`${this.roomId}已连接`, {
+        roomId: this.roomId,
+        mentongId: this.mentongId,
+        userId: this.userId
+      });
       this.connection = connection;
       this.connectionInit();
     });
-    
+
     this.client.on('connectFailed', (error) => {
       this.status = false;
       this.callback(false);
       removeMentong(this.userId, this.mentongId);
-      log.error(error, { message: 'connectFailed', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+      log.error(error, {
+        message: 'connectFailed',
+        roomId: this.roomId,
+        mentongId: this.mentongId,
+        userId: this.userId
+      });
     });
 
     const authArray = Object.keys(auth).map((key) => `${key}=${auth[key]}`);
@@ -87,14 +124,23 @@ export default class Client {
       this.status = false;
       this.callback(false);
       removeMentong(this.userId, this.mentongId);
-      log.error(error, { message: 'ConnectionError', roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+      log.error(error, {
+        message: 'ConnectionError',
+        roomId: this.roomId,
+        mentongId: this.mentongId,
+        userId: this.userId
+      });
     });
 
-    this.connection.on('close', (data) =>  {
+    this.connection.on('close', (data) => {
       this.status = false;
       this.callback(false);
       removeMentong(this.userId, this.mentongId);
-      log.info(`${this.roomId}已关闭`, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+      log.info(`${this.roomId}已关闭`, {
+        roomId: this.roomId,
+        mentongId: this.mentongId,
+        userId: this.userId
+      });
     });
 
     this.connection.on('message', this.watch.bind(this));
@@ -116,7 +162,12 @@ export default class Client {
   }
 
   async getActionAuth() {
-    const actionAuth = await getAndSaveActionAuth({ authCookie: this.authCookie, deviceId: this.deviceId, userId: this.userId, mentongId: this.mentongId})
+    const actionAuth = await getAndSaveActionAuth({
+      authCookie: this.authCookie,
+      deviceId: this.deviceId,
+      userId: this.userId,
+      mentongId: this.mentongId
+    })
     if (actionAuth) {
       this.actionAuth = actionAuth;
     }
@@ -127,19 +178,46 @@ export default class Client {
       try {
         const messageData = JSON.parse(message.utf8Data);
         if (messageData[0]) {
-          const { msgType, op_userInfo = {}, op_info = {}, to_userInfo = {} } = messageData[0].ct || {};
+          const {
+            msgType,
+            op_userInfo = {},
+            op_info = {},
+            to_userInfo = {},
+            msg,
+          } = messageData[0].ct || {};
           switch (msgType) {
-            case msgTypes.enter: this.enterWelcomeResponseMessage(this.welcome, op_userInfo);break;
-            case msgTypes.gift: this.giftThanksResponseMessage(this.thanks, op_userInfo, op_info.name, op_info.num);break;
-            case msgTypes.gift2: this.giftThanksResponseMessage(this.thanks, op_userInfo, '星光', op_info.star_num);break;
-            case msgTypes.follow: op_info.type === 'create' && this.followResponseMessage(this.follow, op_userInfo.nick_name, op_userInfo.badge_level);break;
-            case msgTypes.nobilityOrGuard: this.nobilityOrGuardResponseMessage(op_info.type, op_userInfo.nick_name, op_userInfo.badge_level, (op_info.guard_user || {}).nick_name);break;
-            case msgTypes.setManager: this.setManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);break;
-            case msgTypes.setTemporaryManager: this.setTemporaryManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);break;
+          case msgTypes.enter:
+            this.enterWelcomeResponseMessage(this.welcome, op_userInfo);
+            break;
+          case msgTypes.gift:
+            this.giftThanksResponseMessage(this.thanks, op_userInfo, op_info.name, op_info.num);
+            break;
+          case msgTypes.gift2:
+            this.giftThanksResponseMessage(this.thanks, op_userInfo, '星光', op_info.star_num);
+            break;
+          case msgTypes.follow:
+            op_info.type === 'create' && this.followResponseMessage(this.follow, op_userInfo.nick_name, op_userInfo.badge_level);
+            break;
+          case msgTypes.nobilityOrGuard:
+            this.nobilityOrGuardResponseMessage(op_info.type, op_userInfo.nick_name, op_userInfo.badge_level, (op_info.guard_user || {}).nick_name);
+            break;
+          case msgTypes.setManager:
+            this.setManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);
+            break;
+          case msgTypes.setTemporaryManager:
+            this.setTemporaryManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);
+            break;
+          case msgTypes.msg:
+            this.designatedMsgResponseMessage(msg);
+            break;
           }
         }
       } catch (e) {
-        log.error(e, { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+        log.error(e, {
+          roomId: this.roomId,
+          mentongId: this.mentongId,
+          userId: this.userId
+        });
       }
     }
   }
@@ -168,7 +246,9 @@ export default class Client {
     if (!setting.length) {
       return;
     }
-    const { prefix = '', postfix = '' } = setting[Math.floor(Math.random() * setting.length)] || {};
+    const {
+      prefix = '', postfix = ''
+    } = setting[Math.floor(Math.random() * setting.length)] || {};
     if (!nick_name || (!prefix && !postfix)) {
       return;
     }
@@ -194,15 +274,23 @@ export default class Client {
       const badge = nobility[badge_level];
       extra = badge ? `${badge}大人` : '';
     }
+    return extra;
   }
 
   enterWelcomeResponseMessage(setting, op_userInfo) {
-    const { user_id, nick_name, badge_level, charm_level } = op_userInfo;
+    const {
+      user_id,
+      nick_name,
+      badge_level,
+      charm_level
+    } = op_userInfo;
     if (!setting.length || charm_level < this.welcomeLevel) {
       return;
     }
 
-    const { prefix = '', postfix = '' } = setting[Math.floor(Math.random() * setting.length)] || {};
+    const {
+      prefix = '', postfix = ''
+    } = setting[Math.floor(Math.random() * setting.length)] || {};
     if (!nick_name || (!prefix && !postfix)) {
       return;
     }
@@ -214,8 +302,14 @@ export default class Client {
     if (!setting.length) {
       return;
     }
-    const { user_id, nick_name, badge_level } = op_userInfo;
-    const { prefix = '', postfix = '' } = setting[Math.floor(Math.random() * setting.length)] || {};
+    const {
+      user_id,
+      nick_name,
+      badge_level
+    } = op_userInfo;
+    const {
+      prefix = '', postfix = ''
+    } = setting[Math.floor(Math.random() * setting.length)] || {};
     if (!nick_name || (!prefix && !postfix)) {
       return;
     }
@@ -240,15 +334,29 @@ export default class Client {
   }
 
   initDelayedSending() {
-    let { msgs = [], minutes } = this.delayedSending;
-    msgs = msgs.filter(({msg}) => msg);
+    let {
+      msgs = []
+    } = this.delayedSending;
+    const minutes = this.delayedSending.minutes;
+    msgs = msgs.filter(({
+      msg
+    }) => msg);
     if (!msgs.length) {
       return;
     }
     this.addTimer('interval', 'delayedSendingTimer', () => {
-      const { msg } = (msgs[Math.floor(Math.random() * msgs.length)] || {});
+      const {
+        msg
+      } = (msgs[Math.floor(Math.random() * msgs.length)] || {});
       this.addMessageQ(msg);
     }, (Number(minutes) || 1) * 60 * 1000);
+  }
+
+  designatedMsgResponseMessage(msg) {
+    const res = this.designated[msg];
+    if (res) {
+      this.addMessageQ(res);
+    }
   }
 
   addMessageQ(message) {
@@ -258,6 +366,8 @@ export default class Client {
   }
 
   async sendMessage(message) {
+    console.log(message)
+    return;
     if (!message) {
       return;
     }
@@ -302,12 +412,30 @@ export default class Client {
       });
     if (res.status === 200) {
       if (res.body.code === 200) {
-        return log.info(`发送成功:${message}`, { body: res.body, roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+        log.info(`发送成功:${message}`, {
+          body: res.body,
+          roomId: this.roomId,
+          mentongId: this.mentongId,
+          userId: this.userId
+        });
       } else if (res.code === 201 && res.body.msg === '发言有点频繁哦，稍后再发吧~') {
-        return this.addMessageQ(message);
+        this.addMessageQ(message);
+      } else {
+        log.info('消息发送失败', {
+          body: res.body,
+          roomId: this.roomId,
+          mentongId: this.mentongId,
+          userId: this.userId
+        });
       }
+    } else {
+      log.info('消息发送失败', {
+        body: res.body,
+        roomId: this.roomId,
+        mentongId: this.mentongId,
+        userId: this.userId
+      });
     }
-    log.info('消息发送失败', { body: res.body, roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
   }
 
   async getRoomRankList(type) {
@@ -316,24 +444,26 @@ export default class Client {
       this.actionAuth,
       `P00001=${this.authCookie}`,
     ];
-  
+
     const res = await superagent
-    .post(roomRankListUrl)
-    .set('Host', host)
-    .set('Cookie', ServerCookie.join(';'))
-    .set('User-Agent', userAgent)
-    .set('Content-Type', contentType)
-    .set('Origin', origin)
-    .set('Host', host)
-    .set('Referer', `${referer}/${this.roomId}`)
-    .send({
-      room_id: this.roomId,
-      week: type || 'current',
-    });
+      .post(roomRankListUrl)
+      .set('Host', host)
+      .set('Cookie', ServerCookie.join(';'))
+      .set('User-Agent', userAgent)
+      .set('Content-Type', contentType)
+      .set('Origin', origin)
+      .set('Host', host)
+      .set('Referer', `${referer}/${this.roomId}`)
+      .send({
+        room_id: this.roomId,
+        week: type || 'current',
+      });
 
     if (res.status === 200) {
       if (res.body.code === 200) {
-        const { items = [] } = res.body.data;
+        const {
+          items = []
+        } = res.body.data;
         if (type === 'current') {
           this.currentWeekRoomRank = {};
           items.forEach((item) => {
@@ -345,7 +475,6 @@ export default class Client {
             this.prevWeekRoomRank[item.user_id] = item.rank;
           });
         }
-        
       }
     }
   }
@@ -356,23 +485,25 @@ export default class Client {
       this.actionAuth,
       `P00001=${this.authCookie}`,
     ];
-  
+
     const res = await superagent
-    .post(liveRankListUrl)
-    .set('Host', host)
-    .set('Cookie', ServerCookie.join(';'))
-    .set('User-Agent', userAgent)
-    .set('Content-Type', contentType)
-    .set('Origin', origin)
-    .set('Host', host)
-    .set('Referer', `${referer}/${this.roomId}`)
-    .send({
-      room_id: this.roomId,
-    });
+      .post(liveRankListUrl)
+      .set('Host', host)
+      .set('Cookie', ServerCookie.join(';'))
+      .set('User-Agent', userAgent)
+      .set('Content-Type', contentType)
+      .set('Origin', origin)
+      .set('Host', host)
+      .set('Referer', `${referer}/${this.roomId}`)
+      .send({
+        room_id: this.roomId,
+      });
 
     if (res.status === 200) {
       if (res.body.code === 200) {
-        const { items = [] } = res.body.data;
+        const {
+          items = []
+        } = res.body.data;
         this.liveRank = {};
         items.forEach((item) => {
           this.liveRank[item.user_id] = item.rank;
@@ -397,7 +528,11 @@ export default class Client {
     this.clearTimer();
     this.messageQ = {};
     this.client.abort();
-    log.info('连接关闭', { roomId: this.roomId, mentongId: this.mentongId, userId: this.userId });
+    log.info('连接关闭', {
+      roomId: this.roomId,
+      mentongId: this.mentongId,
+      userId: this.userId
+    });
     this.connection = null;
     this.client = null;
   }

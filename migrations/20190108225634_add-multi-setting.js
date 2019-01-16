@@ -1,4 +1,4 @@
-exports.up = async function(knex, Promise) {
+exports.up = async function(knex) {
   await knex.schema.table('mentongs', function(table) {
     table.text('welcome');
     table.text('thanks');
@@ -7,7 +7,7 @@ exports.up = async function(knex, Promise) {
   });
 };
 
-exports.down = async function(knex, Promise) {
+exports.down = async function(knex) {
   await knex.schema.table('mentongs', function(table) {
     table.dropColumn('welcome');
     table.dropColumn('thanks');

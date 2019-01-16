@@ -16,24 +16,33 @@ export const wsHost2 = 'wss://broker-qx-ws2.iqiyi.com/ws';
 export const wsHost3 = 'ws://broker-qx-ws.iqiyi.com:7533/ws';
 export const wsHost4 = 'ws://broker-qx-ws.iqiyi.com/ws';
 export const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36';
-export const contentType = ['application/x-www-form-urlencoded', 'boundary=---------------------------7e132b2a1a02fc'].join(";");
+export const contentType = ['application/x-www-form-urlencoded', 'boundary=---------------------------7e132b2a1a02fc'].join(';');
 export const host = 'x.pps.tv';
 export const origin = 'https://x.pps.tv';
 export const referer = 'https://x.pps.tv/room/';
 export const sendMsgUrl = 'https://x.pps.tv/action/userDo';
-export const msgTypes = { enter: 200001, gift: 102001, gift2: 102002, follow: 102003, nobilityOrGuard: 105001, setManager: 101005, setTemporaryManager: 101007 };
+export const msgTypes = {
+  enter: 200001,
+  gift: 102001,
+  gift2: 102002,
+  follow: 102003,
+  nobilityOrGuard: 105001,
+  setManager: 101005,
+  setTemporaryManager: 101007,
+  msg: 300001,
+};
 // 贵族等级
 export const nobility = {
-  1 : "爵士",
-  2 : "男爵",
-  3 : "子爵",
-  4 : "伯爵",
-  5 : "侯爵",
-  6 : "公爵",
-  7 : "国王",
+  1: '爵士',
+  2: '男爵',
+  3: '子爵',
+  4: '伯爵',
+  5: '侯爵',
+  6: '公爵',
+  7: '国王',
 };
-export const PING_MSG = "PINGREQ";
-export const PONG_MSG = "PINGREP";
+export const PING_MSG = 'PINGREQ';
+export const PONG_MSG = 'PINGREP';
 export const sdkVersion = '2.05.2801';
 export const sendMsgTime = 3000;
 export const pingPongTime = 60000;

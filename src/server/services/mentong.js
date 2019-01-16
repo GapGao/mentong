@@ -1,8 +1,10 @@
 import superagent from 'superagent-bluebird-promise';
 import log from '../log';
 import db from '../db';
-import { Client } from '../client';
-import { createMentong, removeMentong } from '../clients';
+import {
+  createMentong,
+  removeMentong,
+} from '../clients';
 import httpErrors from '../httpErrors';
 import {
   getQrcodeTokenUrl,
@@ -25,7 +27,12 @@ import {
   saveInfoUrl,
 } from '../constant';
 
-export async function getAndSaveActionAuth({ authCookie, deviceId, userId, mentongId }) {
+export async function getAndSaveActionAuth({
+  authCookie,
+  deviceId,
+  userId,
+  mentongId
+}) {
   if (!authCookie || !deviceId) {
     return null;
   }
@@ -36,12 +43,12 @@ export async function getAndSaveActionAuth({ authCookie, deviceId, userId, mento
   ];
 
   const res = await superagent
-  .get(getActionAuthUrl)
-  .set('User-Agent', userAgent)
-  .set('Content-Type', contentType)
-  .set('Cookie', ServerCookie.join(';'))
-  .set('Host', host)
-  .set('Referer', origin);
+    .get(getActionAuthUrl)
+    .set('User-Agent', userAgent)
+    .set('Content-Type', contentType)
+    .set('Cookie', ServerCookie.join(';'))
+    .set('Host', host)
+    .set('Referer', origin);
 
   if (res.status === 200) {
     const cookies = res.header['set-cookie'][0].split('; ');
@@ -53,16 +60,15 @@ export async function getAndSaveActionAuth({ authCookie, deviceId, userId, mento
       }
     }
     await db('mentongs')
-    .update({
-      action_auth: actionAuth,
-    })
-    .where('user_id', userId)
-    .where('id', mentongId);
+      .update({
+        action_auth: actionAuth,
+      })
+      .where('user_id', userId)
+      .where('id', mentongId);
 
     return actionAuth;
-  } else {
-    return null;
   }
+  return null;
 }
 
 function calcCookies(res) {
@@ -80,7 +86,10 @@ function calcCookies(res) {
   if (!authCookie || !deviceId) {
     throw new httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
   }
-  return { authCookie, deviceId };
+  return {
+    authCookie,
+    deviceId
+  };
 }
 
 export async function mentongLoginHelper(token, userId, time) {
@@ -89,15 +98,15 @@ export async function mentongLoginHelper(token, userId, time) {
   }
   console.log('正在检查是否被扫码');
   const res = await superagent
-  .post(isTokenLoginUrl)
-  .set('User-Agent', userAgent)
-  .set('Content-Type', contentType)
-  .set('Origin', isTokenLoginOrigin)
-  .send({
-    agenttype: agentType,
-    ptid,
-    token: token,
-  });
+    .post(isTokenLoginUrl)
+    .set('User-Agent', userAgent)
+    .set('Content-Type', contentType)
+    .set('Origin', isTokenLoginOrigin)
+    .send({
+      agenttype: agentType,
+      ptid,
+      token: token,
+    });
   if (res.status === 200) {
     const result = JSON.parse(res.text);
     if (result.msg === '找不到用户登录信息，可能手机端尚未确认' || result.msg === '手机端已扫描但未确认') {
@@ -109,55 +118,67 @@ export async function mentongLoginHelper(token, userId, time) {
     } else {
       if (result.code === loginCode) {
         try {
-          const { nickname, user_name, uid, phone, email } = JSON.parse(res.text).data.userinfo;
-          const { authCookie, deviceId } = calcCookies(res);
+          const {
+            nickname,
+            user_name,
+            uid,
+            phone,
+            email
+          } = JSON.parse(res.text).data.userinfo;
+          const {
+            authCookie,
+            deviceId
+          } = calcCookies(res);
 
           const [existMentong] = await db.select('id')
-          .from('mentongs')
-          .where('qiyi_uid', uid)
-          .where('user_id', userId);
+            .from('mentongs')
+            .where('qiyi_uid', uid)
+            .where('user_id', userId);
 
           await db('mentongs')
-          .update({
-            is_current: false,
-          })
-          .where('user_id', userId);
+            .update({
+              is_current: false,
+            })
+            .where('user_id', userId);
 
           if (existMentong) {
             await db('mentongs')
-            .update({
-              user_name,
-              nick_name: nickname,
-              phone,
-              email,
-              login_info: res.text,
-              auth_cookie: authCookie,
-              device_id: deviceId,
-              is_current: true,
-              login_at: new Date(),
-              token,
-            })
-            .where('id', existMentong.id);
+              .update({
+                user_name,
+                nick_name: nickname,
+                phone,
+                email,
+                login_info: res.text,
+                auth_cookie: authCookie,
+                device_id: deviceId,
+                is_current: true,
+                login_at: new Date(),
+                token,
+              })
+              .where('id', existMentong.id);
           } else {
             await db
-            .insert({
-              qiyi_uid: uid,
-              user_id: userId,
-              user_name,
-              nick_name: nickname,
-              phone,
-              email,
-              login_info: res.text,
-              auth_cookie: authCookie,
-              device_id: deviceId,
-              is_current: true,
-              login_at: new Date(),
-              token,
-            })
-            .into('mentongs');
+              .insert({
+                qiyi_uid: uid,
+                user_id: userId,
+                user_name,
+                nick_name: nickname,
+                phone,
+                email,
+                login_info: res.text,
+                auth_cookie: authCookie,
+                device_id: deviceId,
+                is_current: true,
+                login_at: new Date(),
+                token,
+              })
+              .into('mentongs');
           }
         } catch (e) {
-          log.error(e, { message: '门童登录失败', res });
+          log.error(e, {
+            message: '门童登录失败',
+            res
+          });
         }
       }
     }
@@ -168,39 +189,47 @@ export async function mentongLoginHelper(token, userId, time) {
 
 export async function getQrcodeTokenUrlHelper(userId) {
   const res = await superagent
-  .post(getQrcodeTokenUrl)
-  .set('User-Agent', userAgent)
-  .set('Content-Type', contentType)
-  .set('Origin', tokenOrigin)
-  .send({
-    agenttype: agentType,
-    device_name: deviceName,
-    ptid,
-    surl,
-  });
+    .post(getQrcodeTokenUrl)
+    .set('User-Agent', userAgent)
+    .set('Content-Type', contentType)
+    .set('Origin', tokenOrigin)
+    .send({
+      agenttype: agentType,
+      device_name: deviceName,
+      ptid,
+      surl,
+    });
 
   if (res.status === 200) {
     const result = JSON.parse(res.text);
     const token = result.data.token;
     const url = result.data.url;
     mentongLoginHelper(token, userId);
-    return { token, url };
-  } else {
-    throw new httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
+    return {
+      token,
+      url
+    };
   }
+  throw new httpErrors.BadRequestError('登录失败，原因未知，请联系管理员调查修复');
 }
 
-export async function getMentongHelper({ mentongId, token, userId, isCurrent, withCookie = false }) {
+export async function getMentongHelper({
+  mentongId,
+  token,
+  userId,
+  isCurrent,
+  withCookie = false
+}) {
   let query = db
-  .select(
-    'id', 'nick_name as nickName',
-    'user_name as userName', 'status',
-    'login_at as loginAt', 'is_current as isCurrent',
-    'room_id as roomId',
-    'welcome', 'welcome_level', 'thanks', 'follow', 'delayed_sending as delayedSending',
-  )
-  .from('mentongs')
-  .orderBy('updated_at', 'desc');
+    .select(
+      'id', 'nick_name as nickName',
+      'user_name as userName', 'status',
+      'login_at as loginAt', 'is_current as isCurrent',
+      'room_id as roomId',
+      'welcome', 'welcome_level', 'thanks', 'follow', 'designated', 'delayed_sending as delayedSending',
+    )
+    .from('mentongs')
+    .orderBy('updated_at', 'desc');
   if (withCookie) {
     query = query.select('auth_cookie as authCookie', 'action_auth as actionAuth', 'device_id as deviceId');
   }
@@ -212,7 +241,7 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
   if (token) {
     query = query.where('token', token);
   }
-  
+
   if (userId) {
     query = query.where('user_id', userId);
   }
@@ -233,13 +262,13 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
     userName: row.userName,
     isCurrent: row.isCurrent,
     loginAt: row.loginAt,
-  }
+  };
 
   if (withCookie) {
     mentong.authCookie = row.authCookie;
     mentong.actionAuth = row.actionAuth;
     mentong.deviceId = row.deviceId;
-  }
+  };
 
   const mentongSetting = {
     roomId: row.roomId,
@@ -247,40 +276,66 @@ export async function getMentongHelper({ mentongId, token, userId, isCurrent, wi
     welcome: JSON.parse(row.welcome),
     thanks: JSON.parse(row.thanks),
     follow: JSON.parse(row.follow),
+    designated: JSON.parse(row.designated),
     delayedSending: JSON.parse(row.delayedSending),
-  }
+  };
 
-  return { mentong, mentongSetting };
+  return {
+    mentong,
+    mentongSetting
+  };
 }
 
-export async function updateMengongSettingHelper({ mentongId, setting = {}, userId }) {
-
+export async function updateMengongSettingHelper({
+  mentongId,
+  setting = {},
+  userId,
+}) {
   const [mentong] = await db
-  .select('id')
-  .from('mentongs')
-  .where('id', mentongId)
-  .where('user_id', userId);
+    .select('id')
+    .from('mentongs')
+    .where('id', mentongId)
+    .where('user_id', userId);
 
   if (!mentong) {
     throw new httpErrors.BadRequestError('门童不存在');
   }
 
-  const { roomId, welcome, welcomeLevel, thanks, follow, delayedSending } = setting;
+  const {
+    roomId,
+    welcome,
+    welcomeLevel,
+    thanks,
+    follow,
+    delayedSending,
+    designated,
+  } = setting;
 
   await db('mentongs')
-  .update({
-    room_id: roomId,
-    welcome: JSON.stringify(welcome),
-    thanks: JSON.stringify(thanks),
-    follow: JSON.stringify(follow),
-    delayed_sending: JSON.stringify(delayedSending),
-    welcome_level: welcomeLevel,
-  })
-  .where('id', mentong.id);
+    .update({
+      room_id: roomId,
+      welcome: JSON.stringify(welcome),
+      thanks: JSON.stringify(thanks),
+      follow: JSON.stringify(follow),
+      delayed_sending: JSON.stringify(delayedSending),
+      designated: JSON.stringify(designated),
+      welcome_level: welcomeLevel,
+    })
+    .where('id', mentong.id);
 }
 
-export async function openMentongHelper({ mentongId, userId }) {
-  const { mentong, mentongSetting } = await getMentongHelper({ mentongId, userId, withCookie: true });
+export async function openMentongHelper({
+  mentongId,
+  userId
+}) {
+  const {
+    mentong,
+    mentongSetting
+  } = await getMentongHelper({
+    mentongId,
+    userId,
+    withCookie: true
+  });
 
   if (!mentong) {
     throw new httpErrors.BadRequestError('门童不存在');
@@ -288,8 +343,7 @@ export async function openMentongHelper({ mentongId, userId }) {
 
   return await createMentong(
     userId,
-    mentongId,
-    {
+    mentongId, {
       ...mentongSetting,
       deviceId: mentong.deviceId,
       authCookie: mentong.authCookie,
@@ -298,8 +352,17 @@ export async function openMentongHelper({ mentongId, userId }) {
   );
 }
 
-export async function closeMentongHelper({ mentongId, userId }) {
-  const { mentong } = await getMentongHelper({ mentongId, userId, withCookie: true });
+export async function closeMentongHelper({
+  mentongId,
+  userId
+}) {
+  const {
+    mentong
+  } = await getMentongHelper({
+    mentongId,
+    userId,
+    withCookie: true
+  });
 
   if (!mentong) {
     throw new httpErrors.BadRequestError('门童不存在');
@@ -309,8 +372,19 @@ export async function closeMentongHelper({ mentongId, userId }) {
 }
 
 export async function updateNickNameHelper(userId, mentongId, nickName) {
-  const { mentong } = await getMentongHelper({ mentongId, userId, withCookie: true });
-  const actionAuth = await getAndSaveActionAuth({ authCookie: mentong.authCookie, deviceId: mentong.deviceId, userId, mentongId })
+  const {
+    mentong
+  } = await getMentongHelper({
+    mentongId,
+    userId,
+    withCookie: true
+  });
+  const actionAuth = await getAndSaveActionAuth({
+    authCookie: mentong.authCookie,
+    deviceId: mentong.deviceId,
+    userId,
+    mentongId
+  })
   if (actionAuth) {
     mentong.actionAuth = actionAuth;
   }
@@ -321,24 +395,29 @@ export async function updateNickNameHelper(userId, mentongId, nickName) {
   ];
 
   const res = await superagent
-  .post(saveInfoUrl)
-  .set('Host', host)
-  .set('Cookie', ServerCookie.join(';'))
-  .set('User-Agent', userAgent)
-  .set('Content-Type', contentType)
-  .set('Origin', origin)
-  .set('Referer', 'https://x.pps.tv/home/baseInfo')
-  .send({
-    name: nickName,
-  });
+    .post(saveInfoUrl)
+    .set('Host', host)
+    .set('Cookie', ServerCookie.join(';'))
+    .set('User-Agent', userAgent)
+    .set('Content-Type', contentType)
+    .set('Origin', origin)
+    .set('Referer', 'https://x.pps.tv/home/baseInfo')
+    .send({
+      name: nickName,
+    });
 
   if (res.status === 200) {
-    const { code, msg } = res.body || {};
+    const {
+      code,
+      msg
+    } = res.body || {};
     if (code === 200 && msg === 'SUCCESS') {
       await db('mentongs')
-      .update({ nick_name: nickName })
-      .where('user_id', userId)
-      .where('id', mentongId)
+        .update({
+          nick_name: nickName
+        })
+        .where('user_id', userId)
+        .where('id', mentongId);
     } else {
       throw new httpErrors.BadRequestError(msg);
     }
