@@ -366,8 +366,6 @@ export default class Client {
   }
 
   async sendMessage(message) {
-    console.log(message)
-    return;
     if (!message) {
       return;
     }

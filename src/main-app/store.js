@@ -6,10 +6,10 @@ Vue.use(Vuex);
 const store = new Vuex.Store({
   state: {
     user: {
-      id: '123',
-      account: '123',
-      password: '123',
-      expiredAt: '123',
+      id: '',
+      account: '',
+      password: '',
+      expiredAt: null,
     },
     mentong: {
       id: null,
