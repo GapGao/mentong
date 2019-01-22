@@ -344,6 +344,7 @@ export async function openMentongHelper({
   return await createMentong(
     userId,
     mentongId, {
+      nickName: mentong.nickName,
       ...mentongSetting,
       deviceId: mentong.deviceId,
       authCookie: mentong.authCookie,

@@ -30,6 +30,7 @@ export default class Client {
   constructor({
     userId,
     mentongId,
+    nickName,
     roomId,
     deviceId,
     authCookie,
@@ -45,6 +46,7 @@ export default class Client {
   }) {
     this.userId = userId;
     this.mentongId = mentongId;
+    this.nickName = nickName;
     this.roomId = roomId;
     this.deviceId = deviceId;
     this.authCookie = authCookie;
@@ -208,7 +210,7 @@ export default class Client {
             this.setTemporaryManagerResponseMessage(op_userInfo.nick_name, to_userInfo.nick_name);
             break;
           case msgTypes.msg:
-            this.designatedMsgResponseMessage(msg);
+            this.designatedMsgResponseMessage(msg, op_userInfo.nick_name);
             break;
           }
         }
@@ -352,10 +354,35 @@ export default class Client {
     }, (Number(minutes) || 1) * 60 * 1000);
   }
 
-  designatedMsgResponseMessage(msg) {
+  designatedMsgResponseMessage(msg, fromNickName) {
     const res = this.designated[msg];
     if (res) {
       this.addMessageQ(res);
+    } else if (msg.includes(`@${this.nickName}`)) {
+      this.chatBot(msg.split(`@${this.nickName}`).join(' ').replace(/\[(\S)+\]/i, ' ').trim(), fromNickName)
+    } else if (msg.includes(`${this.nickName}`)) {
+      this.chatBot(msg.split(`${this.nickName}`).join(' ').replace(/\[(\S)+\]/i, ' ').trim(), fromNickName)
+    }
+  }
+
+  async chatBot(msg, fromNickName) {
+    try {
+      const res = await superagent
+        .get(`http://api.qingyunke.com/api.php?key=free&appid=0&msg=${msg}`)
+
+      if (res) {
+        const data = JSON.parse(res.text);
+        if (data.result === 0) {
+          this.addMessageQ(`@${fromNickName} ${data.content}`);
+        }
+      }
+    } catch (e) {
+      log.error(e, {
+        roomId: this.roomId,
+        mentongId: this.mentongId,
+        userId: this.userId,
+        message: '机器人调用失败',
+      });
     }
   }
 

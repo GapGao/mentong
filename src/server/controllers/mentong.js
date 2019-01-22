@@ -60,9 +60,8 @@ export async function openMentong(req, res, next) {
     const result = await openMentongHelper({ mentongId, userId: user.id });
     if (result) {
       return res.status(200).send({ message: '启动成功' });
-    } else {
-      return next(new httpErrors.BadRequestError('启动失败'));
     }
+    next(new httpErrors.BadRequestError('启动失败'));
   } catch (e) {
     next(e);
   }
