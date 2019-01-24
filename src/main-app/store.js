@@ -86,6 +86,11 @@ const store = new Vuex.Store({
     addSetting (state, { type }) {
       if (type === 'delayedSending') {
         state.mentongSetting.delayedSending.msgs.push({ msg: '' });
+      } else if (type === 'designated') {
+        state.mentongSetting.designated.push({
+          msg: '',
+          res: '',
+        });
       } else {
         state.mentongSetting[type].push({
           prefix: '',
