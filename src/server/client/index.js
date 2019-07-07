@@ -56,7 +56,7 @@ export default class Client {
     this.thanks = thanks || [];
     this.follow = follow || [];
     this.designated = {};
-    designated.forEach(({ msg, res }) => {
+    (designated || []).forEach(({ msg, res }) => {
       msg.split('；').filter((m) => !!m).forEach((m) => {
         this.designated[m] = res;
       })
