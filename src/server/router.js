@@ -2,16 +2,7 @@ import express from 'express';
 const router = express.Router();
 import {
   renderPage,
-  checkForPage,
-  checkForApi,
 } from './permissions';
-
-import { 
-  login,
-  logout,
-  register,
-  getInviteCode,
-} from './controllers/user';
 
 import {
   getQrcodeTokenUrl,
@@ -24,36 +15,23 @@ import {
   updateNickName,
 } from './controllers/mentong';
 
-// user
-router.get('/login', (req, res) => res.render('login'));
-
-router.post('/login', login);
-
-router.post('/logout', logout);
-
-router.post('/register', register);
-
-router.get('/invite-code', getInviteCode);
-
 // mentong
-router.get('/', checkForPage, (req, res) => res.redirect('/mentong'))
+router.get('/', renderPage);
 
-router.get(['/mentong*', '/profile*'], checkForPage, renderPage);
+router.get('/qrcode', getQrcode);
 
-router.get('/qrcode', checkForApi, getQrcode);
+router.get('/api/token', getQrcodeTokenUrl);
 
-router.get('/api/token', checkForApi, getQrcodeTokenUrl);
+router.get('/api/isTokenLogin/:token', isTokenLogin);
 
-router.get('/api/isTokenLogin/:token', checkForApi, isTokenLogin);
+router.put('/api/mentong/setting', updateMentongSetting);
 
-router.put('/api/mentong/:mentongId/setting', checkForApi, updateMentongSetting);
+router.post('/api/mentong/open', openMentong);
 
-router.post('/api/mentong/:mentongId/open', checkForApi, openMentong);
+router.post('/api/mentong/close', closeMentong);
 
-router.post('/api/mentong/:mentongId/close', checkForApi, closeMentong);
+router.get('/api/mentong/status', getMentongStatus);
 
-router.get('/api/mentong/:mentongId/status', checkForApi, getMentongStatus);
-
-router.put('/api/mentong/:mentongId/nickname', checkForApi, updateNickName);
+router.put('/api/mentong/nickname', updateNickName);
 
 export default router;

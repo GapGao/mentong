@@ -2,8 +2,6 @@ import debug from 'debug';
 import http from 'http';
 import createError from 'http-errors';
 import express from 'express';
-import session from 'express-session';
-import connectRedis from 'connect-redis';
 import compression from 'compression';
 import path from 'path';
 import cookieParser from 'cookie-parser';
@@ -11,9 +9,7 @@ import logger from 'morgan';
 import log from './log';
 
 import router from './router';
-import config from './config';
 const app = express();
-const RedisStrore = connectRedis(session);
 
 app.use(compression());
 // view engine setup
@@ -25,16 +21,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(session({
-  key : 'mentong',
-  secret : 'mentong',
-  resave : true,
-  rolling: true,
-  saveUninitialized : true,
-  cookie: { maxAge: 1000 * 60 * 60 * 24 },
-  store : new RedisStrore(config.redis),
-}));
 
 app.use('/', router);
 
@@ -53,7 +39,7 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
-const port = normalizePort( config.port || '3001');
+const port = normalizePort('3001');
 app.set('port', port);
 const server = http.createServer(app);
 

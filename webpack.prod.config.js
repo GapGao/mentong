@@ -17,8 +17,7 @@ function resolve (dir) {
 
 module.exports = {
   entry: {
-    login: ['babel-polyfill', path.join(paths.src.main, '/login.js')],
-    main: ['babel-polyfill', path.join(paths.src.main, '/index.js')],
+    main: ['@babel/polyfill', path.join(paths.src.main, '/index.js')],
   },
   output: {
     path: paths.dest,
@@ -42,7 +41,7 @@ module.exports = {
         loader: 'babel-loader',
         exclude: /node_modules/,
         query:{
-          presets: ['es2015', 'stage-3'],  
+          presets: ['@babel/preset-env'],  
         },
       },
       {

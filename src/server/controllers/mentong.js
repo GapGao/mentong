@@ -12,7 +12,7 @@ import { getMentongStatusHelper } from '../clients';
 
 export async function getQrcodeTokenUrl(req, res, next) {
   try {
-    const { token, url } = await getQrcodeTokenUrlHelper(req.session.user.id);
+    const { token, url } = await getQrcodeTokenUrlHelper();
     return res.status(200).json({ token, url });
   } catch (e) {
     next(e);
@@ -33,8 +33,7 @@ export async function getQrcode(req, res, next) {
 export async function isTokenLogin(req, res, next) {
   try {
     const { token } = req.params;
-    const { user } = req.session;
-    const { mentong, mentongSetting } = await getMentongHelper({ token, userId: user.id });
+    const { mentong, mentongSetting } = getMentongHelper(false, token);
     return res.status(200).json({ isLogin: !!mentong, mentong, mentongSetting });
   } catch (e) {
     next(e);
@@ -43,10 +42,8 @@ export async function isTokenLogin(req, res, next) {
 
 export async function updateMentongSetting(req, res, next) {
   try {
-    const { user } = req.session;
-    const { mentongId } = req.params;
     const setting = req.body;
-    await updateMengongSettingHelper({ mentongId, setting, userId: user.id });
+    updateMengongSettingHelper(setting);
     return res.status(200).send();
   } catch (e) {
     next(e);
@@ -55,9 +52,7 @@ export async function updateMentongSetting(req, res, next) {
 
 export async function openMentong(req, res, next) {
   try {
-    const { user } = req.session;
-    const { mentongId } = req.params;
-    const result = await openMentongHelper({ mentongId, userId: user.id });
+    const result = await openMentongHelper();
     if (result) {
       return res.status(200).send({ message: '启动成功' });
     }
@@ -69,9 +64,7 @@ export async function openMentong(req, res, next) {
 
 export async function closeMentong(req, res, next) {
   try {
-    const { user } = req.session;
-    const { mentongId } = req.params;
-    await closeMentongHelper({ mentongId, userId: user.id });
+    await closeMentongHelper();
     return res.status(200).send();
   } catch (e) {
     next(e);
@@ -80,9 +73,7 @@ export async function closeMentong(req, res, next) {
 
 export function getMentongStatus(req, res, next) {
   try {
-    const { user } = req.session;
-    const { mentongId } = req.params;
-    const status = getMentongStatusHelper(user.id, mentongId);
+    const status = getMentongStatusHelper();
     return res.status(200).send({ status });
   } catch (e) {
     next(e);
@@ -91,10 +82,8 @@ export function getMentongStatus(req, res, next) {
 
 export async function updateNickName(req, res, next) {
   try {
-    const { user } = req.session;
-    const { mentongId } = req.params;
     const { nickName } = req.body;
-    await updateNickNameHelper(user.id, mentongId, nickName);
+    await updateNickNameHelper(nickName);
     return res.status(200).send();
   } catch (e) {
     next(e);

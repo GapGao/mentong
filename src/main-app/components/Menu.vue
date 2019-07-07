@@ -5,23 +5,15 @@
     <el-col :span="24">
       <div class="logo">奇秀直播助理</div>
       <el-menu
-        default-active="/mentong"
+        default-active="/"
         :router="true"
         class="el-menu-vertical-demo"
         background-color="#545c64"
         text-color="#fff"
         active-text-color="#ffd04b">
-        <el-menu-item index="/mentong">
+        <el-menu-item index="/">
           <i class="el-icon-menu"></i>
           <span slot="title">门童</span>
-        </el-menu-item>
-        <el-menu-item index="/profile">
-          <i class="el-icon-setting"></i>
-          <span slot="title">账号信息</span>
-        </el-menu-item>
-        <el-menu-item index="4" disabled>
-          <i class="el-icon-document"></i>
-          <span slot="title">敬请期待</span>
         </el-menu-item>
       </el-menu>
     </el-col>
@@ -33,7 +25,7 @@ export default {
 }
 </script>
 
-<style scope>
+<style>
   .logo {
     width: 100%;
     height: 60px;

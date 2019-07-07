@@ -1,23 +1,16 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import Mentong from './containers/Mentong';
-import Profile from './containers/Profile';
 
 Vue.use(VueRouter);
 
 const routes = [
   {
-    path: '/mentong',
+    path: '/',
     name: 'mentong',
     component: Mentong,
     meta: { title: '门童' }
-  },
-  {
-    path: '/profile',
-    name: 'profile',
-    component: Profile,
-    meta: { title: '账号信息' }
-  },
+  }
 ]
 
 const router = new VueRouter({

@@ -5,17 +5,9 @@ Vue.use(Vuex);
 
 const store = new Vuex.Store({
   state: {
-    user: {
-      id: '',
-      account: '',
-      password: '',
-      expiredAt: null,
-    },
     mentong: {
-      id: null,
       userName: '',
       nickName: '',
-      isCurrent: true,
       loginAt: null,
       status: false,
     },
@@ -71,7 +63,7 @@ const store = new Vuex.Store({
           state.mentongSetting.designated = designated;
         }
         if (delayedSending) {
-          if (delayedSending.msgs.length) {
+          if ((delayedSending.msgs || []).length) {
             state.mentongSetting.delayedSending.msgs = delayedSending.msgs;
           }
           if (delayedSending.minutes) {

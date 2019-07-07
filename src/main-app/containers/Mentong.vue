@@ -36,7 +36,7 @@
               >{{ editName ? '保存' : '修改' }}</el-button>
             </el-form-item>
             <el-button
-              v-if="mentong.id && !needLogin"
+              v-if="!needLogin"
               type="primary"
               size="medium"
               class="change"
@@ -68,7 +68,7 @@
               ></el-input-number>
             </el-form-item>
             <el-form-item label="欢迎语">
-              <div v-for="(welcome, index) in mentongSetting.welcome" class="setting-item">
+              <div v-for="(welcome, index) in mentongSetting.welcome" class="setting-item" :key="index">
                 <el-autocomplete v-model="welcome.prefix" :fetch-suggestions="querySearch(welcomeSug)" @select="(item) => welcomeSelect(item, index)" placeholder="前缀" clearable>
                   <template slot="append">昵称</template>
                 </el-autocomplete>
@@ -90,7 +90,7 @@
               </div>
             </el-form-item>
             <el-form-item label="礼物感谢语">
-              <div v-for="(thanks, index) in mentongSetting.thanks" class="setting-item">
+              <div v-for="(thanks, index) in mentongSetting.thanks" class="setting-item" :key="index">
                 <el-autocomplete v-model="thanks.prefix" :fetch-suggestions="querySearch(thanksSug)" @select="(item) => thanksSelect(item, index)" placeholder="前缀" clearable>
                   <template slot="append">昵称</template>
                 </el-autocomplete>
@@ -114,7 +114,7 @@
               </div>
             </el-form-item>
             <el-form-item label="关注感谢语">
-              <div v-for="(follow, index) in mentongSetting.follow" class="setting-item">
+              <div v-for="(follow, index) in mentongSetting.follow" class="setting-item" :key="index">
                 <el-autocomplete v-model="follow.prefix" :fetch-suggestions="querySearch(followSug)" @select="(item) => followSelect(item, index)" placeholder="前缀" clearable>
                   <template slot="append">昵称</template>
                 </el-autocomplete>
@@ -136,7 +136,7 @@
               </div>
             </el-form-item>
             <el-form-item label="指定消息回复（多对一 以中文分号；分割）">
-              <div v-for="(designated, index) in mentongSetting.designated" class="setting-item designatedmsg">
+              <div v-for="(designated, index) in mentongSetting.designated" :key="index" class="setting-item designatedmsg">
                 <el-autocomplete v-model="designated.msg" :fetch-suggestions="querySearch(designatedSug)" @select="(item) => designatedSelect(item, index)" class="designated" placeholder="指定消息" clearable></el-autocomplete>
                 <el-autocomplete v-model="designated.res" :fetch-suggestions="querySearch(designatedSug)" @select="(item) => designatedSelect(item, index)" class="designated" placeholder="指定回复" clearable></el-autocomplete>
                 <div
@@ -156,7 +156,7 @@
               </div>
             </el-form-item>
             <el-form-item label="定时发送">
-              <div v-for="(msg, index) in mentongSetting.delayedSending.msgs" class="delayed-sending setting-item">
+              <div v-for="(msg, index) in mentongSetting.delayedSending.msgs" :key="index" class="delayed-sending setting-item">
                 <el-autocomplete  :fetch-suggestions="querySearch(delayedSendingSug)" @select="(item) => delayedSendingSelect(item, index)" v-model="msg.msg" clearable></el-autocomplete>
                 <div
                   v-if="mentongSetting.delayedSending.msgs.length > 1"
@@ -211,13 +211,14 @@
               :disabled="action === 1"
               @click="closeMentong"
             >关闭</el-button>
-            <el-button
-              type="primary"
-              size="medium"
-              class="openBtn"
-              :disabled="!mentong.status && (action === 1 || !mentong.id || !mentongSetting.roomId)"
-              @click="openMentong"
-            >{{ mentong.status ? '重启' : '启动' }}</el-button>
+            <el-tooltip :disabled="!getContent()" :content="getContent()" placement="top">
+              <el-button
+                type="primary"
+                size="medium"
+                class="openBtn"
+                @click="openMentong"
+              >{{ mentong.status ? '重启' : '启动' }}</el-button>
+            </el-tooltip>
           </el-form>
         </el-card>
       </el-col>
@@ -280,7 +281,7 @@ export default {
   computed: {
     ...mapState(["mentong", "mentongSetting"]),
     needLogin() {
-      if (!this.mentong.id) {
+      if (!this.mentong.loginAt) {
         return true;
       } else {
         return moment().isAfter(moment(this.mentong.loginAt).add(2, "day"));
@@ -303,6 +304,17 @@ export default {
       "addSetting",
       "removeSetting"
     ]),
+    getContent() {
+      if (!this.mentong.status) {
+        if (this.action === 1) {
+          return '登录失效，需重新扫码登录'
+        }
+        if (!this.mentongSetting.roomId) {
+          return '需填写房间信息并保存设置'
+        }
+      }
+      return;
+    },
     querySearch(sugs) {
       return (queryString, cb) => cb(sugs);
     },
@@ -389,7 +401,7 @@ export default {
         ({ msg }) => msg
       );
 
-      updateMengongSetting(this.mentong.id, setting)
+      updateMengongSetting(setting)
         .then(() => {
           this.confirmSetting = true;
           this.$message("修改成功");
@@ -399,7 +411,10 @@ export default {
         });
     },
     openMentong() {
-      openMentong(this.mentong.id)
+      if (!this.mentong.status && (this.action === 1 || !this.mentongSetting.roomId)) {
+        return;
+      }
+      openMentong()
         .then(() => {
           this.$message("启动成功");
           this.updateMentongStatus({ status: true });
@@ -414,7 +429,7 @@ export default {
         });
     },
     closeMentong() {
-      closeMentong(this.mentong.id)
+      closeMentong()
         .then(() => {
           this.$message("关闭成功");
           clearInterval(this.timer);
@@ -426,7 +441,7 @@ export default {
         });
     },
     getMentongStatus() {
-      getMentongStatus(this.mentong.id)
+      getMentongStatus()
         .then(res => {
           this.updateMentongStatus({ status: res.body.status });
           if (!res.body.status) {
@@ -440,7 +455,7 @@ export default {
     },
     editNickName() {
       if (this.editName) {
-        editNickName(this.mentong.id, this.mentong.nickName)
+        editNickName(this.mentong.nickName)
           .then(() => {
             this.editName = false;
             this.$message("修改成功");
@@ -454,7 +469,7 @@ export default {
     },
   },
   mounted() {
-    if (this.mentong.id && this.mentong.status) {
+    if (this.mentong.status) {
       clearInterval(this.timer);
       this.timer = setInterval(() => {
         this.getMentongStatus();
@@ -467,7 +482,7 @@ export default {
 };
 </script>
 
-<style scope>
+<style>
 .actions {
   margin-top: 20px;
   height: 100%;

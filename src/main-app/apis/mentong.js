@@ -21,34 +21,34 @@ export function isTokenLogin(token) {
   .catch(check);
 }
 
-export function updateMengongSetting(mentongId, setting = {}) {
+export function updateMengongSetting(setting = {}) {
   return superagent
-  .put(`/api/mentong/${mentongId}/setting`)
+  .put(`/api/mentong/setting`)
   .send(setting)
   .catch(check);
 }
 
-export function openMentong(mentongId) {
+export function openMentong() {
   return superagent
-  .post(`/api/mentong/${mentongId}/open`)
+  .post(`/api/mentong/open`)
   .catch(check);
 }
 
-export function closeMentong(mentongId) {
+export function closeMentong() {
   return superagent
-  .post(`/api/mentong/${mentongId}/close`)
+  .post(`/api/mentong/close`)
   .catch(check);
 }
 
-export function getMentongStatus(mentongId) {
+export function getMentongStatus() {
   return superagent
-  .get(`/api/mentong/${mentongId}/status`)
+  .get(`/api/mentong/status`)
   .catch(check);
 }
 
-export function editNickName(mentongId, nickName) {
+export function editNickName(nickName) {
   return superagent
-  .put(`/api/mentong/${mentongId}/nickname`)
+  .put(`/api/mentong/nickname`)
   .send({ nickName })
   .catch(check);
 }

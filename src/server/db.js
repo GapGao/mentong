@@ -1,23 +1,21 @@
-/**
- * Connect to mysql instance.
- * Then initialize and export a connection pool.
- */
+import fs from 'fs';
+import path from 'path';
 
-import _ from 'lodash';
-import knex from 'knex';
-
-import log from './log';
-import config from './config';
-import knexConfigs from '../../knexfile';
-
-const knexConfig = _.merge(knexConfigs[config.env], config.mysql);
-
-log.info(`Initialize mysql connection pool to ${knexConfig.connection.host}`);
-
-const db = knex(knexConfig);
-
-if (!db) {
-  log.warn('Connection to mysql failed');
+export function writeMentong(mentong) {
+  fs.writeFileSync(path.join(__dirname, 'data.json'), JSON.stringify(mentong));
 }
 
-export default db;
+export function readMentong() {
+  let mentong = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf-8');
+  try {
+    mentong = JSON.parse(mentong);
+    return mentong;
+  } catch (error) {
+    throw new httpErrors.BadRequestError('门童不存在');
+  }
+}
+
+export function updateMentong(newMentong) {
+  const mentong = readMentong();
+  writeMentong(Object.assign(mentong, newMentong));
+}

@@ -15,8 +15,7 @@ module.exports = {
   cache: true,
   devtool: 'cheap-module-eval-source-map',
   entry: {
-    login: ['babel-polyfill', 'webpack-hot-middleware/client', path.join(paths.src.main, '/login.js')],
-    main: ['babel-polyfill', 'webpack-hot-middleware/client', path.join(paths.src.main, '/index.js')],
+    main: ['@babel/polyfill', 'webpack-hot-middleware/client', path.join(paths.src.main, '/index.js')],
   },
   output: {
     path: paths.dest,
@@ -43,7 +42,7 @@ module.exports = {
         loader: 'babel-loader',
         exclude: /node_modules/,
         query:{
-          presets: ['es2015', 'stage-3'],  
+          presets: ['@babel/preset-env'],  
         }
       } ,
       {

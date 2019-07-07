@@ -28,8 +28,6 @@ import {
 const WebSocketClient = websocket.client;
 export default class Client {
   constructor({
-    userId,
-    mentongId,
     nickName,
     roomId,
     deviceId,
@@ -44,8 +42,6 @@ export default class Client {
     dpf,
     callback = () => {}
   }) {
-    this.userId = userId;
-    this.mentongId = mentongId;
     this.nickName = nickName;
     this.roomId = roomId;
     this.deviceId = deviceId;
@@ -98,8 +94,6 @@ export default class Client {
       this.callback(true);
       log.info(`${this.roomId}已连接`, {
         roomId: this.roomId,
-        mentongId: this.mentongId,
-        userId: this.userId
       });
       this.connection = connection;
       this.connectionInit();
@@ -108,12 +102,10 @@ export default class Client {
     this.client.on('connectFailed', (error) => {
       this.status = false;
       this.callback(false);
-      removeMentong(this.userId, this.mentongId);
+      removeMentong();
       log.error(error, {
         message: 'connectFailed',
         roomId: this.roomId,
-        mentongId: this.mentongId,
-        userId: this.userId
       });
     });
 
@@ -125,23 +117,19 @@ export default class Client {
     this.connection.on('error', (error) => {
       this.status = false;
       this.callback(false);
-      removeMentong(this.userId, this.mentongId);
+      removeMentong();
       log.error(error, {
         message: 'ConnectionError',
         roomId: this.roomId,
-        mentongId: this.mentongId,
-        userId: this.userId
       });
     });
 
     this.connection.on('close', (data) => {
       this.status = false;
       this.callback(false);
-      removeMentong(this.userId, this.mentongId);
+      removeMentong();
       log.info(`${this.roomId}已关闭`, {
         roomId: this.roomId,
-        mentongId: this.mentongId,
-        userId: this.userId
       });
     });
 
@@ -150,7 +138,7 @@ export default class Client {
     this.addTimer('interval', 'sendMessageQConsumeTimer', this.sendMessageQConsumer, 4000);
     this.initDelayedSending();
     // 6小时自动清除
-    this.addTimer('timeout', 'stopTimer', () => removeMentong(this.userId, this.mentongId), 6 * 60 * 60 * 1000);
+    this.addTimer('timeout', 'stopTimer', () => removeMentong(), 6 * 60 * 60 * 1000);
 
     // 获取操作权限
     await this.getActionAuth();
@@ -167,8 +155,6 @@ export default class Client {
     const actionAuth = await getAndSaveActionAuth({
       authCookie: this.authCookie,
       deviceId: this.deviceId,
-      userId: this.userId,
-      mentongId: this.mentongId
     })
     if (actionAuth) {
       this.actionAuth = actionAuth;
@@ -217,8 +203,6 @@ export default class Client {
       } catch (e) {
         log.error(e, {
           roomId: this.roomId,
-          mentongId: this.mentongId,
-          userId: this.userId
         });
       }
     }
@@ -379,8 +363,6 @@ export default class Client {
     } catch (e) {
       log.error(e, {
         roomId: this.roomId,
-        mentongId: this.mentongId,
-        userId: this.userId,
         message: '机器人调用失败',
       });
     }
@@ -440,8 +422,6 @@ export default class Client {
         log.info(`发送成功:${message}`, {
           body: res.body,
           roomId: this.roomId,
-          mentongId: this.mentongId,
-          userId: this.userId
         });
       } else if (res.code === 201 && res.body.msg === '发言有点频繁哦，稍后再发吧~') {
         this.addMessageQ(message);
@@ -449,16 +429,12 @@ export default class Client {
         log.info('消息发送失败', {
           body: res.body,
           roomId: this.roomId,
-          mentongId: this.mentongId,
-          userId: this.userId
         });
       }
     } else {
       log.info('消息发送失败', {
         body: res.body,
         roomId: this.roomId,
-        mentongId: this.mentongId,
-        userId: this.userId
       });
     }
   }
@@ -555,8 +531,6 @@ export default class Client {
     this.client.abort();
     log.info('连接关闭', {
       roomId: this.roomId,
-      mentongId: this.mentongId,
-      userId: this.userId
     });
     this.connection = null;
     this.client = null;
